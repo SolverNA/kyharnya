@@ -3,105 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кухарня</title>
+    <title>Кухарня Cloud</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <style>
         :root {
-            --bg: #f1f5f9;
-            --card: #ffffff;
-            --primary: #4f46e5;
-            --danger: #ef4444;
-            --success: #10b981;
-            --text: #0f172a;
+            --bg: #f1f5f9; --card: #ffffff; --primary: #4f46e5;
+            --danger: #ef4444; --success: #10b981; --text: #0f172a;
         }
-
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg);
-            margin: 0; padding: 10px;
-            display: flex; flex-direction: column; align-items: center;
-            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif; background: var(--bg);
+            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; color: var(--text);
         }
-
         .auth-header {
-            width: 100%; max-width: 600px;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; background: white; border-radius: 16px;
-            margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: white; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-
         .container { width: 100%; max-width: 600px; }
-
-        /* Календарь */
         .month-nav {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px;
         }
-
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-
-        .weekday { text-align: center; font-size: 12px; font-weight: 700; color: #64748b; padding-bottom: 5px; }
-
+        .weekday { text-align: center; font-size: 12px; font-weight: 700; color: #64748b; }
         .day {
             background: var(--card); aspect-ratio: 1/1; border-radius: 12px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; border: 2px solid transparent; transition: 0.2s;
-            font-weight: 500; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 500;
         }
-
         .day.today { border-color: var(--primary); background: #eef2ff; }
-        .day.has-data { background: #dcfce7; }
-        .day:active { transform: scale(0.95); }
+        .day.has-data { background: #dcfce7; border-color: var(--success); }
 
-        /* Панель дня */
         #dayView {
             margin-top: 20px; background: white; padding: 20px;
             border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            animation: fadeIn 0.3s ease;
         }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         .btn-camera {
             width: 100%; padding: 16px; background: var(--primary); color: white;
-            border: none; border-radius: 14px; font-size: 16px; font-weight: 600;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer;
         }
-
-        .lock-notice {
-            background: #f8717115; color: var(--danger);
-            padding: 12px; border-radius: 12px; text-align: center; font-size: 14px;
-        }
-
-        /* Камера */
         #cameraOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; display: none; flex-direction: column; z-index: 999;
         }
-
         video { width: 100%; height: 75%; object-fit: cover; }
-
-        .cam-controls {
-            height: 25%; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; gap: 20px;
-        }
-
-        .shutter {
-            width: 72px; height: 72px; border-radius: 50%;
-            background: white; border: 6px solid #333; cursor: pointer;
-        }
-
-        .user-pill { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
-        .user-pill img { width: 28px; height: 28px; border-radius: 50%; }
-
-        .post-item {
-            margin-top: 15px; border-radius: 16px; overflow: hidden;
-            border: 1px solid #e2e8f0; background: #f8fafc;
-        }
+        .shutter { width: 72px; height: 72px; border-radius: 50%; background: white; border: 6px solid #333; cursor: pointer; }
+        .post-item { margin-top: 15px; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; background: #f8fafc; }
         .post-item img { width: 100%; display: block; }
-        .post-meta { padding: 12px; font-size: 14px; }
-
-        canvas#photoCanvas { display: none; }
+        .user-pill img { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -121,7 +73,6 @@
         <b id="monthDisplay"></b>
         <button onclick="moveMonth(1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❯</button>
     </div>
-
     <div class="calendar-grid" id="calendar"></div>
 
     <div id="dayView" hidden>
@@ -129,72 +80,86 @@
             <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
             <button onclick="document.getElementById('dayView').hidden=true" style="border:none; background:#eee; padding:5px 10px; border-radius:8px;">✕</button>
         </div>
-
         <div id="actionContainer"></div>
-
         <div id="uploadForm" style="display:none; margin-top:15px;">
             <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ СЕГОДНЯ?</label>
             <select id="chefSelect" style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
-            <button onclick="finalizePost()" style="width:100%; padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:600;">Опубликовать</button>
+            <button id="saveBtn" onclick="finalizePost()" style="width:100%; padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:600;">Опубликовать</button>
         </div>
-
         <div id="postHistory"></div>
     </div>
 </div>
 
 <div id="cameraOverlay">
     <video id="webcam" autoplay playsinline></video>
-    <div class="cam-controls">
+    <div style="height:25%; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:20px;">
         <div class="shutter" onclick="capturePhoto()"></div>
-        <button onclick="closeCamera()" style="background:none; border:none; color:white; font-size:14px; cursor:pointer;">Отмена</button>
+        <button onclick="closeCamera()" style="background:none; border:none; color:white; cursor:pointer;">Отмена</button>
     </div>
 </div>
 
-<canvas id="photoCanvas"></canvas>
+<canvas id="photoCanvas" style="display:none;"></canvas>
 
 <script>
+// --- КОНФИГУРАЦИЯ FIREBASE ---
+const firebaseConfig = {
+    apiKey: "AIzaSyA123c63SiYKZ6gUutup51cUEFk2eW-hY8",
+    authDomain: "egfesf.firebaseapp.com",
+    projectId: "egfesf",
+    storageBucket: "egfesf.firebasestorage.app",
+    messagingSenderId: "374992022938",
+    appId: "1:374992022938:web:67916c8442861733eb9e23",
+    databaseURL: "https://egfesf-default-rtdb.firebaseio.com" // Ссылка на БД
+};
+
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
 let authUser = null;
 let viewDate = new Date();
 let selectedKey = "";
 let tempImage = null;
+let globalData = {};
+
+// Слушаем базу в реальном времени
+db.ref("cook_posts").on("value", (snapshot) => {
+    globalData = snapshot.val() || {};
+    render();
+    if (!document.getElementById("dayView").hidden) updateHistory();
+});
 
 function onGoogleSignIn(response) {
     const data = JSON.parse(atob(response.credential.split('.')[1]));
-    authUser = { name: data.name, pic: data.picture, email: data.email };
+    authUser = { name: data.name, pic: data.picture };
     document.getElementById("userProfile").innerHTML = `<img src="${authUser.pic}"> <span>${authUser.name}</span>`;
     render();
 }
 
-const getDB = () => JSON.parse(localStorage.getItem("cook_v3_data") || "{}");
-const saveDB = (data) => localStorage.setItem("cook_v3_data", JSON.stringify(data));
-
 function render() {
     const grid = document.getElementById("calendar");
     grid.innerHTML = "";
-
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
-    const today = new Date();
-    const todayKey = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
 
     document.getElementById("monthDisplay").innerText = new Intl.DateTimeFormat('ru-RU', {month:'long', year:'numeric'}).format(viewDate);
 
-    // Заголовки Пн-Вс
     ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => {
         const h = document.createElement("div"); h.className="weekday"; h.innerText=d; grid.appendChild(h);
     });
 
     const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month+1, 0).getDate();
-    const db = getDB();
 
     for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement("div"));
 
     for(let d=1; d<=daysInMonth; d++) {
         const key = `${year}-${month+1}-${d}`;
         const dayEl = document.createElement("div");
-        dayEl.className = `day ${key === todayKey ? 'today' : ''} ${db[key] ? 'has-data' : ''}`;
+        dayEl.className = `day ${key === todayKey ? 'today' : ''} ${globalData[key] ? 'has-data' : ''}`;
         dayEl.innerText = d;
         dayEl.onclick = () => openDay(key);
         grid.appendChild(dayEl);
@@ -203,18 +168,18 @@ function render() {
 
 function openDay(key) {
     selectedKey = key;
-    const view = document.getElementById("dayView");
-    const actions = document.getElementById("actionContainer");
-    const todayKey = `${new Date().getFullYear()}-${new Date().getMonth()+1}-${new Date().getDate()}`;
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
 
-    view.hidden = false;
+    document.getElementById("dayView").hidden = false;
     document.getElementById("selectedDateTitle").innerText = key === todayKey ? "Сегодня" : key;
     document.getElementById("uploadForm").style.display = "none";
 
+    const actions = document.getElementById("actionContainer");
     if (!authUser) {
-        actions.innerHTML = `<div class="lock-notice">Нужно войти в аккаунт для записи</div>`;
+        actions.innerHTML = `<div style="background:#fef2f2; color:#ef4444; padding:12px; border-radius:12px; text-align:center;">Нужно войти для записи</div>`;
     } else if (key !== todayKey) {
-        actions.innerHTML = `<div class="lock-notice">📸 Можно фоткать только в текущий день</div>`;
+        actions.innerHTML = `<div style="background:#f8fafc; color:#64748b; padding:12px; border-radius:12px; text-align:center;">Только история (фото только сегодня)</div>`;
     } else {
         actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
     }
@@ -223,20 +188,16 @@ function openDay(key) {
     select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
 
     updateHistory();
-    view.scrollIntoView({behavior: 'smooth'});
 }
 
 async function openCamera() {
     const overlay = document.getElementById("cameraOverlay");
     const video = document.getElementById("webcam");
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         video.srcObject = stream;
         overlay.style.display = "flex";
-    } catch (e) { alert("Камера недоступна"); }
+    } catch (e) { alert("Ошибка камеры"); }
 }
 
 function capturePhoto() {
@@ -245,7 +206,8 @@ function capturePhoto() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
-    tempImage = canvas.toDataURL("image/jpeg", 0.7);
+    tempImage = canvas.toDataURL("image/jpeg", 0.5); // Сжатие для БД
+
     closeCamera();
     document.getElementById("uploadForm").style.display = "block";
 }
@@ -257,28 +219,31 @@ function closeCamera() {
 }
 
 function finalizePost() {
-    const db = getDB();
-    db[selectedKey] = db[selectedKey] || [];
-    db[selectedKey].push({
+    const btn = document.getElementById("saveBtn");
+    btn.disabled = true;
+    btn.innerText = "Сохранение...";
+
+    const postData = {
         img: tempImage,
         chef: document.getElementById("chefSelect").value,
         author: authUser.name,
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-    });
-    saveDB(db);
-    document.getElementById("uploadForm").style.display = "none";
-    updateHistory();
-    render();
+    };
+
+    db.ref("cook_posts/" + selectedKey).push(postData).then(() => {
+        btn.disabled = false;
+        btn.innerText = "Опубликовать";
+        document.getElementById("uploadForm").style.display = "none";
+    }).catch(e => alert("Ошибка базы: " + e.message));
 }
 
 function updateHistory() {
-    const db = getDB();
-    const posts = db[selectedKey] || [];
+    const posts = globalData[selectedKey] ? Object.values(globalData[selectedKey]) : [];
     const container = document.getElementById("postHistory");
     container.innerHTML = posts.map(p => `
         <div class="post-item">
             <img src="${p.img}">
-            <div class="post-meta">
+            <div style="padding:12px; font-size:14px;">
                 <b>${p.chef}</b> готовил(а)<br>
                 <span style="font-size:11px; color:#64748b;">👤 ${p.author} • ⏰ ${p.time}</span>
             </div>
