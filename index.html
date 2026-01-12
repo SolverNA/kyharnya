@@ -65,7 +65,7 @@
     <div id="userProfile" class="user-pill"><b>Загрузка...</b></div>
     <div id="loginUI">
         <div id="g_id_onload"
-             data-client_id="771898581196-g5oe85s7k5fp1bk6hkfpfagcqb5n2f6t.apps.googleusercontent.com"
+             data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
              data-callback="onGoogleSignIn"
              data-auto_select="true">
         </div>
@@ -149,8 +149,17 @@ auth.onAuthStateChanged((user) => {
 
 // 2. ВХОД ЧЕРЕЗ GOOGLE
 function onGoogleSignIn(response) {
+    if (!firebase.apps.length) return; // Проверка, что Firebase готов
+
     const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-    auth.signInWithCredential(credential).catch(e => alert("Ошибка входа: " + e.message));
+    auth.signInWithCredential(credential)
+        .then(() => {
+            console.log("Успешный вход!");
+        })
+        .catch(e => {
+            console.error("Ошибка:", e.code);
+            alert("Ошибка входа: " + e.message);
+        });
 }
 
 // 3. ПОЛУЧЕНИЕ ДАННЫХ
