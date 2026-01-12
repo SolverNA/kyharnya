@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кухарня Cloud</title>
+    <title>Кухарня</title>
+
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <style>
         :root {
@@ -54,17 +56,21 @@
         .post-item { margin-top: 15px; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; background: #f8fafc; }
         .post-item img { width: 100%; display: block; }
         .user-pill img { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
+        .logout-btn { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; padding: 0; }
     </style>
 </head>
 <body>
 
 <div class="auth-header">
-    <div id="userProfile" class="user-pill"><b>Вход не выполнен</b></div>
-    <div id="g_id_onload"
-         data-client_id="771898581196-g5oe85s7k5fp1bk6hkfpfagcqb5n2f6t.apps.googleusercontent.com"
-         data-callback="onGoogleSignIn">
+    <div id="userProfile" class="user-pill"><b>Загрузка...</b></div>
+    <div id="loginUI">
+        <div id="g_id_onload"
+             data-client_id="771898581196-g5oe85s7k5fp1bk6hkfpfagcqb5n2f6t.apps.googleusercontent.com"
+             data-callback="onGoogleSignIn"
+             data-auto_select="true">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
     </div>
-    <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
 </div>
 
 <div class="container">
@@ -109,33 +115,50 @@ const firebaseConfig = {
     storageBucket: "egfesf.firebasestorage.app",
     messagingSenderId: "374992022938",
     appId: "1:374992022938:web:67916c8442861733eb9e23",
-    databaseURL: "https://egfesf-default-rtdb.europe-west1.firebasedatabase.app" // Ссылка на БД
+    databaseURL: "https://egfesf-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
-// Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const auth = firebase.auth();
 
 const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
-let authUser = null;
+let currentUser = null;
 let viewDate = new Date();
 let selectedKey = "";
 let tempImage = null;
 let globalData = {};
 
-// Слушаем базу в реальном времени
+// 1. СЛУШАТЕЛЬ АВТОРИЗАЦИИ (Чтобы не слетало при перезагрузке)
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        document.getElementById("userProfile").innerHTML = `
+            <img src="${user.photoURL}">
+            <span>${user.displayName}</span>
+            <br><button class="logout-btn" onclick="auth.signOut()">Выйти</button>
+        `;
+        document.getElementById("loginUI").style.display = "none";
+    } else {
+        currentUser = null;
+        document.getElementById("userProfile").innerHTML = "<b>Вход не выполнен</b>";
+        document.getElementById("loginUI").style.display = "block";
+    }
+    render();
+});
+
+// 2. ВХОД ЧЕРЕЗ GOOGLE
+function onGoogleSignIn(response) {
+    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
+    auth.signInWithCredential(credential).catch(e => alert("Ошибка входа: " + e.message));
+}
+
+// 3. ПОЛУЧЕНИЕ ДАННЫХ
 db.ref("cook_posts").on("value", (snapshot) => {
     globalData = snapshot.val() || {};
     render();
     if (!document.getElementById("dayView").hidden) updateHistory();
 });
-
-function onGoogleSignIn(response) {
-    const data = JSON.parse(atob(response.credential.split('.')[1]));
-    authUser = { name: data.name, pic: data.picture };
-    document.getElementById("userProfile").innerHTML = `<img src="${authUser.pic}"> <span>${authUser.name}</span>`;
-    render();
-}
 
 function render() {
     const grid = document.getElementById("calendar");
@@ -176,7 +199,7 @@ function openDay(key) {
     document.getElementById("uploadForm").style.display = "none";
 
     const actions = document.getElementById("actionContainer");
-    if (!authUser) {
+    if (!currentUser) {
         actions.innerHTML = `<div style="background:#fef2f2; color:#ef4444; padding:12px; border-radius:12px; text-align:center;">Нужно войти для записи</div>`;
     } else if (key !== todayKey) {
         actions.innerHTML = `<div style="background:#f8fafc; color:#64748b; padding:12px; border-radius:12px; text-align:center;">Только история (фото только сегодня)</div>`;
@@ -197,16 +220,20 @@ async function openCamera() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         video.srcObject = stream;
         overlay.style.display = "flex";
-    } catch (e) { alert("Ошибка камеры"); }
+    } catch (e) { alert("Ошибка камеры. Проверьте разрешения в браузере."); }
 }
 
 function capturePhoto() {
     const video = document.getElementById("webcam");
     const canvas = document.getElementById("photoCanvas");
+
+    // Сохраняем пропорции
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
-    tempImage = canvas.toDataURL("image/jpeg", 0.5); // Сжатие для БД
+
+    // Сжимаем фото (0.4 качество), чтобы оно влезло в Realtime Database
+    tempImage = canvas.toDataURL("image/jpeg", 0.4);
 
     closeCamera();
     document.getElementById("uploadForm").style.display = "block";
@@ -219,6 +246,8 @@ function closeCamera() {
 }
 
 function finalizePost() {
+    if (!currentUser) return alert("Вы не авторизованы!");
+
     const btn = document.getElementById("saveBtn");
     btn.disabled = true;
     btn.innerText = "Сохранение...";
@@ -226,7 +255,7 @@ function finalizePost() {
     const postData = {
         img: tempImage,
         chef: document.getElementById("chefSelect").value,
-        author: authUser.name,
+        author: currentUser.displayName,
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
     };
 
@@ -234,18 +263,27 @@ function finalizePost() {
         btn.disabled = false;
         btn.innerText = "Опубликовать";
         document.getElementById("uploadForm").style.display = "none";
-    }).catch(e => alert("Ошибка базы: " + e.message));
+        tempImage = null; // Очистка
+    }).catch(e => {
+        alert("Ошибка базы: " + e.message);
+        btn.disabled = false;
+        btn.innerText = "Опубликовать";
+    });
 }
 
 function updateHistory() {
     const posts = globalData[selectedKey] ? Object.values(globalData[selectedKey]) : [];
     const container = document.getElementById("postHistory");
+    if (posts.length === 0) {
+        container.innerHTML = "<p style='text-align:center; color:#94a3b8;'>Записей пока нет</p>";
+        return;
+    }
     container.innerHTML = posts.map(p => `
         <div class="post-item">
             <img src="${p.img}">
             <div style="padding:12px; font-size:14px;">
                 <b>${p.chef}</b> готовил(а)<br>
-                <span style="font-size:11px; color:#64748b;">👤 ${p.author} • ⏰ ${p.time}</span>
+                <span style="font-size:11px; color:#64748b;">👤 Добавил: ${p.author} • ⏰ ${p.time}</span>
             </div>
         </div>
     `).reverse().join("");
