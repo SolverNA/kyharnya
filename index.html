@@ -47,14 +47,22 @@
         .weekday { text-align: center; font-size: 12px; font-weight: 700; color: #64748b; }
         .day {
             background: var(--card); aspect-ratio: 1/1; border-radius: 12px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
             cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 500; position: relative;
+            padding-top: 4px; overflow: hidden;
         }
         .day.today { border-color: var(--primary); background: #eef2ff; }
         .day.has-data { background: #dcfce7; border-color: var(--success); }
         .day.planned { border-style: dashed; border-color: var(--gray); }
-        .day-label { font-size: 14px; }
-        .plan-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; bottom: 6px; }
+        .day.is-fire { background: #fff7ed; border-color: var(--warning); box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
+
+        .day-label { font-size: 14px; z-index: 2; }
+
+        .plan-name {
+            font-size: 9px; text-transform: uppercase; color: var(--primary);
+            font-weight: 800; text-align: center; margin-top: 2px; line-height: 1; word-break: break-all;
+        }
+        .fire-icon-day { font-size: 14px; margin-top: auto; margin-bottom: 2px; }
 
         /* DAY VIEW */
         #dayView {
@@ -86,7 +94,7 @@
 
         /* STYLES FOR STATUS */
         .post-green-seq { border-color: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-        .post-pending { filter: grayscale(100%); border-color: #cbd5e1; }
+        .post-pending { border-color: #cbd5e1; }
         .post-rejected {
             border-color: var(--danger); background: #fef2f2; height: 60px; overflow: hidden;
         }
@@ -104,11 +112,16 @@
         .vote-btn {
             flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer;
             display: flex; flex-direction: column; align-items: center; font-size: 12px;
+            transition: 0.2s;
         }
-        .vote-btn.approve { color: var(--success); background: #f0fdf4; border-color: #bbf7d0; }
-        .vote-btn.reject { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
-        .voter-avatars { display: flex; margin-top: 4px; }
-        .voter-avatars img { width: 20px; height: 20px; border-radius: 50%; margin-left: -5px; border: 1px solid white; }
+        .vote-btn:hover { background: #f8fafc; transform: scale(1.02); }
+        .vote-btn:active { transform: scale(0.98); }
+
+        .vote-btn.approve { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
+        .vote-btn.reject { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+
+        .voter-avatars { display: flex; margin-top: 4px; justify-content: center; }
+        .voter-avatars img { width: 20px; height: 20px; border-radius: 50%; margin: 0 2px; border: 1px solid white; }
 
         /* CAMERA & MODALS */
         #cameraOverlay {
@@ -118,14 +131,21 @@
         video { width: 100%; height: 75%; object-fit: cover; }
         .shutter { width: 72px; height: 72px; border-radius: 50%; background: white; border: 6px solid #333; cursor: pointer; }
 
-        /* STATS MODAL */
-        #statsModal {
+        /* STATS & AUTH MODAL */
+        #statsModal, #authModal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000;
+            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000;
         }
         .modal-content {
-            background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px;
+            background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center;
         }
+        .role-btn {
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            background: var(--primary); color: white; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .role-btn:disabled { background: var(--gray); cursor: not-allowed; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
         th { color: #64748b; }
@@ -199,6 +219,14 @@
 
 <canvas id="photoCanvas" style="display:none;"></canvas>
 
+<div id="authModal">
+    <div class="modal-content">
+        <h3>Добро пожаловать!</h3>
+        <p>Выберите, кто вы. Это действие нельзя отменить.</p>
+        <div id="roleButtons"></div>
+    </div>
+</div>
+
 <div id="statsModal" onclick="if(event.target === this) this.style.display='none'">
     <div class="modal-content">
         <h3>📊 Статистика Кухарни</h3>
@@ -227,33 +255,91 @@ const auth = firebase.auth();
 
 const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
 let currentUser = null;
+let currentRole = null; // Привязанная роль (имя)
 let viewDate = new Date();
 let selectedKey = "";
 let tempImage = null;
 let globalData = {};
 let planData = {};
+let usersMapping = {};
+let fireDaysMap = {}; // Хранит информацию о днях с огоньками
 
-// 1. AUTH LISTENER
+// 1. AUTH LISTENER & BINDING
 auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
-        document.getElementById("userProfile").innerHTML = `
-            <img src="${user.photoURL}">
-            <div>
-                <div style="font-size:13px; font-weight:bold;">${user.displayName}</div>
-                <div style="font-size:10px; color:var(--gray);">Нажми для статистики</div>
-            </div>
-        `;
+        // Check role binding
+        db.ref("users_mapping").once("value", snap => {
+            usersMapping = snap.val() || {};
+            if (usersMapping[user.uid]) {
+                // User already bound
+                currentRole = usersMapping[user.uid].name;
+                updateUserProfileUI(user, currentRole);
+            } else {
+                // New user - show modal
+                showAuthModal(user.uid);
+            }
+        });
+
         document.getElementById("loginUI").style.display = "none";
         document.getElementById("logoutUI").style.display = "block";
     } else {
         currentUser = null;
+        currentRole = null;
         document.getElementById("userProfile").innerHTML = "<b>Вход не выполнен</b>";
         document.getElementById("loginUI").style.display = "block";
         document.getElementById("logoutUI").style.display = "none";
+        document.getElementById("authModal").style.display = "none";
     }
     render();
 });
+
+function updateUserProfileUI(user, role) {
+    document.getElementById("userProfile").innerHTML = `
+        <img src="${user.photoURL}">
+        <div>
+            <div style="font-size:13px; font-weight:bold;">${role}</div>
+            <div style="font-size:10px; color:var(--gray);">Статистика</div>
+        </div>
+    `;
+    document.getElementById("authModal").style.display = "none";
+}
+
+function showAuthModal(uid) {
+    const modal = document.getElementById("authModal");
+    const container = document.getElementById("roleButtons");
+    modal.style.display = "flex";
+
+    // Find taken roles
+    const takenRoles = Object.values(usersMapping).map(u => u.name);
+
+    let html = "";
+    let freeSlots = 0;
+
+    CHEFS.forEach(chef => {
+        if (takenRoles.includes(chef)) {
+            html += `<button class="role-btn" disabled>${chef} (Занято)</button>`;
+        } else {
+            html += `<button class="role-btn" onclick="bindRole('${uid}', '${chef}')">${chef}</button>`;
+            freeSlots++;
+        }
+    });
+
+    if (freeSlots === 0) {
+        html = "<div style='color:red; font-weight:bold;'>Нет свободных мест. Доступ запрещен.</div>";
+        setTimeout(() => auth.signOut(), 3000);
+    }
+
+    container.innerHTML = html;
+}
+
+function bindRole(uid, name) {
+    db.ref("users_mapping/" + uid).set({ name: name, email: currentUser.email }).then(() => {
+        currentRole = name;
+        usersMapping[uid] = { name: name };
+        updateUserProfileUI(currentUser, name);
+    });
+}
 
 function onGoogleSignIn(response) {
     const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
@@ -265,13 +351,21 @@ db.ref("/").on("value", (snapshot) => {
     const val = snapshot.val() || {};
     globalData = val.cook_posts || {};
     planData = val.planning || {};
+    usersMapping = val.users_mapping || {};
+
+    // If user is logged in, re-check role incase changed externally
+    if(currentUser && usersMapping[currentUser.uid]) {
+        currentRole = usersMapping[currentUser.uid].name;
+        updateUserProfileUI(currentUser, currentRole);
+    }
+
     render();
     if (!document.getElementById("dayView").hidden) updateHistory();
 });
 
 // 3. RENDER LOGIC
 function render() {
-    calculateStats();
+    calculateStats(); // Calculate streaks and stats first
 
     const grid = document.getElementById("calendar");
     grid.innerHTML = "";
@@ -296,16 +390,35 @@ function render() {
         const key = `${year}-${month+1}-${d}`;
         const dayEl = document.createElement("div");
         const hasPlan = planData[key];
+        const isFire = fireDaysMap[key];
+        const hasData = globalData[key]; // Есть посты (любые)
 
-        let classes = `day ${key === todayKey ? 'today' : ''} ${globalData[key] ? 'has-data' : ''} ${hasPlan ? 'planned' : ''}`;
-
-        dayEl.className = classes;
-        dayEl.innerHTML = `<span class="day-label">${d}</span>`;
-
-        if (hasPlan && !globalData[key]) {
-            dayEl.innerHTML += `<div class="plan-dot" title="План: ${hasPlan.chef}"></div>`;
+        // Find if any post is approved in that day
+        let approvedChef = null;
+        if(globalData[key]) {
+            Object.values(globalData[key]).forEach(p => {
+                if(p.status === 'approved') approvedChef = p.chef;
+            });
         }
 
+        let classes = `day ${key === todayKey ? 'today' : ''} ${approvedChef ? 'has-data' : ''} ${hasPlan ? 'planned' : ''} ${isFire ? 'is-fire' : ''}`;
+
+        dayEl.className = classes;
+        let content = `<span class="day-label">${d}</span>`;
+
+        if (hasPlan && !approvedChef) {
+            content += `<div class="plan-name">${hasPlan.chef}</div>`;
+        }
+
+        if (approvedChef) {
+             content += `<div class="plan-name" style="color:#065f46">${approvedChef}</div>`;
+        }
+
+        if (isFire) {
+            content += `<div class="fire-icon-day">🔥</div>`;
+        }
+
+        dayEl.innerHTML = content;
         dayEl.onclick = () => openDay(key);
         grid.appendChild(dayEl);
     }
@@ -341,12 +454,25 @@ function openDay(key) {
     if (!currentUser) {
         actions.innerHTML = `<div style="background:#fef2f2; color:var(--danger); padding:12px; border-radius:12px; text-align:center;">Нужно войти</div>`;
     } else if (key === todayKey) {
-        actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
+        // Проверка: Если уже есть approved пост, кнопку скрываем или меняем
+        const posts = globalData[key] || {};
+        const hasApproved = Object.values(posts).some(p => p.status === 'approved');
+
+        if (!hasApproved) {
+            actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
+        } else {
+             actions.innerHTML = `<div style="text-align:center; color:var(--success); font-weight:bold; padding:10px;">✅ Сегодня уже готовили</div>`;
+        }
+
         // Pre-select planned chef
         const select = document.getElementById("chefSelect");
         select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
+        // Select current user role by default if they are a chef
+        if (currentRole && CHEFS.includes(currentRole)) select.value = currentRole;
         if(planData[key]) select.value = planData[key].chef;
+
     } else if (diffDays > 0 && diffDays <= 7) {
+        // Планирование на 7 дней вперед
         actions.innerHTML = `<button class="btn-plan" onclick="showPlanForm()">📅 ЗАПЛАНИРОВАТЬ</button>`;
         if(planData[key]) actions.innerHTML += `<div style="text-align:center; margin-top:5px; font-size:12px;">План: <b>${planData[key].chef}</b></div>`;
     } else {
@@ -371,7 +497,8 @@ function savePlan() {
         db.ref("planning/" + selectedKey).remove();
     }
     document.getElementById("planForm").style.display = "none";
-    openDay(selectedKey); // refresh
+    // Slight delay to allow DB update to reflect in UI logic
+    setTimeout(() => openDay(selectedKey), 200);
 }
 
 // 4. CAMERA & POSTING
@@ -410,10 +537,10 @@ function finalizePost() {
     const postData = {
         img: tempImage,
         chef: document.getElementById("chefSelect").value,
-        author: currentUser.displayName,
+        author: currentUser.displayName || currentRole,
         authorId: currentUser.uid,
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        status: 'pending', // pending, approved, rejected
+        status: 'pending',
         votes: {}
     };
 
@@ -429,18 +556,8 @@ function finalizePost() {
 // 5. VOTING & HISTORY
 function updateHistory() {
     const postsObj = globalData[selectedKey] || {};
-    const posts = Object.entries(postsObj).map(([k, v]) => ({...v, key: k})).reverse(); // Newest first
+    const posts = Object.entries(postsObj).map(([k, v]) => ({...v, key: k})).reverse();
     const container = document.getElementById("postHistory");
-
-    // Calculate global green line context (Need entire history for true context, but locally we check simple sequence)
-    // For green line, we need to flatten ALL data to find the sequence.
-    // Here we will do a simpler check: Does this post follow the previous ONE in this list?
-    // Wait, prompt implies global sequence. Let's do a quick calculation of the "Green Status" for these posts.
-    // To keep it performant, we'll mark them based on the `calculateStats` result which we can store globally.
-
-    // Let's re-calculate sequence locally for visual clarity in DayView
-    // We need to fetch the LAST valid chef before this day to know start.
-    // Complex. Simplified approach: Check against CHEFS rotation array.
 
     let html = "";
 
@@ -449,26 +566,27 @@ function updateHistory() {
         const ups = Object.values(votes).filter(v => v.val === 'like').length;
         const downs = Object.values(votes).filter(v => v.val === 'dislike').length;
 
-        let status = 'pending';
-        if (ups > downs && (ups+downs) > 0) status = 'approved';
-        if (downs > ups && (downs+ups) > 0) status = 'rejected';
-
-        // Auto-update status in DB if needed (simplified here, usually done by server functions)
-        // We will just use the calculated status for display.
+        // Определяем статус визуально (хотя в БД он уже должен быть обновлен)
+        let status = p.status || 'pending';
 
         const isCollapsed = status === 'rejected';
-        const isGreen = checkSequence(p); // Helper to check if this post fits the sequence
+        const isAuthor = currentUser && p.authorId === currentUser.uid;
 
-        const statusText = status === 'pending' ? 'Еще не одобрен' : (status === 'rejected' ? 'ОТКЛОНЕН' : 'ОДОБРЕН');
+        // Текст статуса
+        let statusText = 'На голосовании';
+        let statusColor = '#94a3b8';
+
+        if (status === 'approved') { statusText = 'ОДОБРЕН'; statusColor = '#10b981'; }
+        if (status === 'rejected') { statusText = 'ОТКЛОНЕН'; statusColor = '#ef4444'; }
 
         html += `
-        <div class="post-item ${isGreen && status === 'approved' ? 'post-green-seq' : ''} ${status === 'pending' ? 'post-pending' : ''} ${status === 'rejected' ? 'post-rejected' : ''}" id="post-${p.key}">
-            ${status === 'rejected' ? `<div class="post-header" onclick="togglePost('${p.key}')"><span>🚫 Отклоненный пост (${p.chef})</span> <span>▼</span></div>` : ''}
+        <div class="post-item ${status === 'approved' ? 'post-green-seq' : ''} ${status === 'pending' ? 'post-pending' : ''} ${status === 'rejected' ? 'post-rejected' : ''}" id="post-${p.key}">
+            ${status === 'rejected' ? `<div class="post-header" onclick="togglePost('${p.key}')"><span>🚫 Отклонено (${p.chef})</span> <span>▼</span></div>` : ''}
 
             <div style="${isCollapsed ? 'display:none' : ''}">
                 <div style="position:relative;">
                     <img src="${p.img}">
-                    ${status !== 'approved' ? `<div class="status-badge" style="background:${status==='pending'?'#94a3b8':'#ef4444'}">${statusText}</div>` : ''}
+                    <div class="status-badge" style="background:${statusColor}">${statusText}</div>
                 </div>
 
                 <div style="padding:12px; font-size:14px;">
@@ -476,7 +594,7 @@ function updateHistory() {
                     <span style="font-size:11px; color:#64748b;">👤 ${p.author} • ⏰ ${p.time}</span>
                 </div>
 
-                ${currentUser ? `
+                ${(status === 'pending' && currentUser && !isAuthor) ? `
                 <div class="vote-actions">
                     <div class="vote-btn approve" onclick="vote('${selectedKey}', '${p.key}', 'like')">
                         👍 Одобрить (${ups})
@@ -491,6 +609,14 @@ function updateHistory() {
                         </div>
                     </div>
                 </div>
+                ` : ''}
+
+                ${(status !== 'pending' || isAuthor) ? `
+                <div style="padding:0 12px 12px; display:flex; gap:10px;">
+                    <div style="flex:1; text-align:center; font-size:12px; color:${status==='approved'?'var(--success)':'#64748b'};">👍 ${ups}</div>
+                    <div style="flex:1; text-align:center; font-size:12px; color:${status==='rejected'?'var(--danger)':'#64748b'};">👎 ${downs}</div>
+                </div>
+                ${isAuthor && status === 'pending' ? '<div style="text-align:center; font-size:10px; color:#94a3b8; padding-bottom:10px;">Вы не можете голосовать за свой пост</div>' : ''}
                 ` : ''}
             </div>
         </div>
@@ -509,108 +635,127 @@ function togglePost(key) {
 
 function vote(dateKey, postKey, type) {
     if (!currentUser) return;
-    const votePath = `cook_posts/${dateKey}/${postKey}/votes/${currentUser.uid}`;
-    db.ref(votePath).set({
-        val: type,
-        name: currentUser.displayName,
-        photo: currentUser.photoURL
+
+    const postRef = db.ref(`cook_posts/${dateKey}/${postKey}`);
+
+    // Сначала читаем текущее состояние, чтобы проверить завершение
+    postRef.transaction((post) => {
+        if (!post) return post;
+        if (post.status !== 'pending') return; // Уже решено
+
+        if (!post.votes) post.votes = {};
+
+        // Добавляем голос
+        post.votes[currentUser.uid] = {
+            val: type,
+            name: currentRole || currentUser.displayName,
+            photo: currentUser.photoURL
+        };
+
+        // Считаем
+        const votesArr = Object.values(post.votes);
+        const likes = votesArr.filter(v => v.val === 'like').length;
+        const dislikes = votesArr.filter(v => v.val === 'dislike').length;
+
+        // Логика завершения: 2 голоса в одну сторону
+        if (likes >= 2) {
+            post.status = 'approved';
+        } else if (dislikes >= 2) {
+            post.status = 'rejected';
+        }
+
+        return post;
+    }, (error, committed, snapshot) => {
+        if(error) alert("Ошибка голосования");
     });
 }
 
-// 6. STATISTICS & LOGIC
-let lastValidChefIndex = -1; // Global tracker for green line
-
-function checkSequence(post) {
-    // This is a visual estimation. For true "green line" we need to know the *previous approved post*.
-    // Simple logic: Does chef match expected?
-    // We need to reconstruct the entire chain to be accurate.
-    // For this UI, we will return true if post is approved. The "Sequence breaking" logic
-    // is better handled in the calculateStats loop.
-
-    // Let's grab the status from calculateStats cache if possible.
-    // Hack: Just return true if approved for now to show green border.
-    const votes = post.votes || {};
-    const ups = Object.values(votes).filter(v => v.val === 'like').length;
-    const downs = Object.values(votes).filter(v => v.val === 'dislike').length;
-    return (ups > downs);
-}
-
+// 6. STATISTICS & STREAK LOGIC
 function calculateStats() {
-    let fireCount = 0;
-    let maxFire = 0;
-
-    // Sort all dates
-    const dates = Object.keys(globalData).sort((a,b) => new Date(a) - new Date(b));
-    let lastChefIdx = -1;
     let currentStreak = 0;
 
-    // Stats counters
-    const chefCounts = {};
+    // Счетчики поваров для баланса
+    const balanceCounts = {};
+    CHEFS.forEach(c => balanceCounts[c] = 0);
+
+    const statsCounts = {}; // Для модалки
+    CHEFS.forEach(c => statsCounts[c] = 0);
+
     const userPosts = {};
     const userVotes = {};
-    CHEFS.forEach(c => chefCounts[c] = 0);
 
-    dates.forEach(date => {
-        const posts = Object.values(globalData[date]);
-        // Find the "Winning" post for the day (Approved)
-        const approvedPost = posts.find(p => {
-            const ups = p.votes ? Object.values(p.votes).filter(v=>v.val==='like').length : 0;
-            const downs = p.votes ? Object.values(p.votes).filter(v=>v.val==='dislike').length : 0;
-            return ups > downs || (ups===0 && downs===0); // Default to approved if no votes yet? No, pending.
-            // Let's assume pending doesn't break streak but doesn't add to it?
-            // Prompt: "Если голоса одобрили". So only approved counts.
+    fireDaysMap = {}; // Сброс карты огоньков
+
+    // Сортируем все даты (прошлые и будущие планы)
+    // Нам важна хронология. Объединяем ключи постов и планов.
+    const allDates = new Set([...Object.keys(globalData), ...Object.keys(planData)]);
+    const sortedDates = Array.from(allDates).sort((a,b) => new Date(a) - new Date(b));
+
+    sortedDates.forEach(date => {
+        // 1. Ищем approved пост
+        const posts = globalData[date] ? Object.values(globalData[date]) : [];
+        const approvedPost = posts.find(p => p.status === 'approved');
+
+        // Для статистики юзеров
+        posts.forEach(p => {
+             if(p.status === 'approved') {
+                 statsCounts[p.chef] = (statsCounts[p.chef]||0)+1;
+                 userPosts[p.author] = (userPosts[p.author]||0)+1;
+                 if(p.votes) Object.values(p.votes).forEach(v => userVotes[v.name] = (userVotes[v.name]||0)+1);
+             }
         });
 
+        // ЛОГИКА ОГОНЬКА (СТРИК)
+        let isStreakSafe = true; // День не нарушает баланс
+        let contributesToStreak = false; // День добавляет огонек
+
+        // Если кто-то приготовил (approved)
         if (approvedPost) {
-            // Count for stats
-            if(chefCounts[approvedPost.chef] !== undefined) chefCounts[approvedPost.chef]++;
-            if(userPosts[approvedPost.author]) userPosts[approvedPost.author] = (userPosts[approvedPost.author]||0)+1;
+            balanceCounts[approvedPost.chef]++;
+            contributesToStreak = true;
+        }
 
-            if(approvedPost.votes) {
-                Object.values(approvedPost.votes).forEach(v => {
-                    userVotes[v.name] = (userVotes[v.name]||0)+1;
-                });
-            }
+        // Проверка баланса: Никто не должен готовить больше других более чем на 1 раз
+        const counts = Object.values(balanceCounts);
+        const max = Math.max(...counts);
+        const min = Math.min(...counts);
 
-            // Streak Logic
-            const chefIdx = CHEFS.indexOf(approvedPost.chef);
-            const plannedChef = planData[date] ? planData[date].chef : null;
+        if ((max - min) > 1) {
+            // Баланс нарушен!
+            currentStreak = 0;
+            isStreakSafe = false;
+        }
 
-            // Is it a "Fire" day?
-            // Condition 1: Sequence respected (Next in cycle)
-            // Condition 2: Planned person cooked
-            let isFireDay = false;
-
-            if (lastChefIdx === -1) {
-                isFireDay = true; // First day always starts streak
+        // Дополнительное условие: Если есть План и он выполнен
+        const plan = planData[date];
+        if (plan) {
+            if (approvedPost && approvedPost.chef === plan.chef) {
+                // План выполнен -> огонек (если баланс ок)
+                contributesToStreak = true;
+            } else if (approvedPost && approvedPost.chef !== plan.chef) {
+                 // Готовил не тот, кто должен -> сбиваем ли?
+                 // ТЗ: "если его не собют порядком". Порядок важнее. Если баланс ОК, то ок.
             } else {
-                const expectedIdx = (lastChefIdx + 1) % 3;
-                if (chefIdx === expectedIdx) isFireDay = true;
+                // План есть, но еще не готовили (будущее или пропущенный день)
+                // Огонек не ставим пока не приготовил.
+                contributesToStreak = false;
             }
+        }
 
-            if (plannedChef && approvedPost.chef === plannedChef) isFireDay = true;
-
-            if (isFireDay) {
+        // Финальное решение по дню
+        if (isStreakSafe) {
+            if (contributesToStreak) {
+                fireDaysMap[date] = true;
                 currentStreak++;
-            } else {
-                currentStreak = 0; // Streak broken
             }
-
-            lastChefIdx = chefIdx;
         } else {
-            // No approved post this day.
-            // If the day is in the past, streak breaks.
-            const d = new Date(date);
-            const now = new Date();
-            now.setHours(0,0,0,0);
-            if (d < now) currentStreak = 0;
+             // Если баланс нарушен, этот день точно не огонь, и стрик сброшен
+             fireDaysMap[date] = false;
         }
     });
 
     document.getElementById("fireStats").innerText = `🔥 ${currentStreak}`;
-
-    // Store stats for Modal
-    window.appStats = { chefCounts, userPosts, userVotes };
+    window.appStats = { chefCounts: statsCounts, userPosts, userVotes };
 }
 
 function getLeaderboard() {
@@ -628,7 +773,6 @@ function openStats() {
 
     let html = `<tr><th>Имя</th><th>Готовил</th><th>Посты</th><th>Голоса</th></tr>`;
 
-    // Merge all users we know about (chefs + authors + voters)
     const allNames = new Set([...CHEFS, ...Object.keys(s.userPosts), ...Object.keys(s.userVotes)]);
 
     allNames.forEach(name => {
