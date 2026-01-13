@@ -3,95 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кухарня Cloud</title>
+    <title>Кухарня Cloud PRO</title>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <style>
         :root {
-            --bg: #f1f5f9; --card: #ffffff; --primary: #4f46e5;
-            --danger: #ef4444; --success: #10b981; --text: #0f172a;
+            --bg: #f8fafc; --card: #ffffff; --primary: #6366f1;
+            --danger: #ef4444; --success: #22c55e; --text: #1e293b;
+            --warning: #f59e0b; --gray: #94a3b8;
         }
         body {
-            font-family: 'Inter', -apple-system, sans-serif; background: var(--bg);
+            font-family: 'Inter', system-ui, sans-serif; background: var(--bg);
             margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; color: var(--text);
         }
+
+        /* Стили статистики */
+        .stats-bar {
+            width: 100%; max-width: 600px; background: white; border-radius: 16px;
+            padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .fire-counter { font-size: 24px; font-weight: 800; color: #f97316; display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 10px; }
+        .leaderboard { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .leaderboard th { color: var(--gray); font-weight: 500; text-align: left; padding-bottom: 5px; }
+        .leaderboard td { padding: 5px 0; border-top: 1px solid #f1f5f9; }
+
         .auth-header {
             width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; background: white; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 12px; background: white; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .container { width: 100%; max-width: 600px; }
-        .month-nav {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px;
-        }
+
+        /* Календарь */
+        .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .weekday { text-align: center; font-size: 12px; font-weight: 700; color: #64748b; }
+        .weekday { text-align: center; font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; }
         .day {
             background: var(--card); aspect-ratio: 1/1; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 500;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 600; position: relative;
         }
-        .day.today { border-color: var(--primary); background: #eef2ff; }
-        .day.has-data { background: #dcfce7; border-color: var(--success); }
+        .day.today { border-color: var(--primary); }
+        .day.has-data { background: #f0fdf4; border-color: var(--success); }
+        .day.planned { border-style: dashed; border-color: var(--warning); }
+        .day.fire-day::after { content: '🔥'; position: absolute; top: -5px; right: -2px; font-size: 12px; }
+        .day-chef { font-size: 8px; color: var(--gray); margin-top: 2px; overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
+
+        /* Посты и Голосование */
+        .post-item { margin-top: 15px; border-radius: 16px; overflow: hidden; border: 2px solid #e2e8f0; background: white; transition: 0.3s; }
+        .post-item.pending { filter: grayscale(0.8); border-color: var(--gray); opacity: 0.7; }
+        .post-item.rejected { border-color: var(--danger); }
+        .post-item.rejected .post-content { display: none; } /* Сворачивание */
+        .post-item.sequence-ok { border-color: var(--success); box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+
+        .vote-bar { display: flex; gap: 10px; padding: 10px; background: #f8fafc; align-items: center; }
+        .vote-btn { border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; }
+        .voter-img { width: 18px; height: 18px; border-radius: 50%; border: 1px solid white; margin-left: -8px; }
+        .voter-list { display: flex; margin-left: 5px; }
 
         #dayView {
-            margin-top: 20px; background: white; padding: 20px;
-            border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;
+            background: white; padding: 20px; overflow-y: auto;
         }
-        .btn-camera {
-            width: 100%; padding: 16px; background: var(--primary); color: white;
-            border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer;
-        }
-        #cameraOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; display: none; flex-direction: column; z-index: 999;
-        }
+        .btn-camera { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 600; cursor: pointer; }
+
+        #cameraOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; flex-direction: column; z-index: 999; }
         video { width: 100%; height: 75%; object-fit: cover; }
         .shutter { width: 72px; height: 72px; border-radius: 50%; background: white; border: 6px solid #333; cursor: pointer; }
-        .post-item { margin-top: 15px; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; background: #f8fafc; }
-        .post-item img { width: 100%; display: block; }
-        .user-pill img { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
-        .logout-btn { background: none; border: none; color: var(--danger); font-size: 11px; cursor: pointer; margin-top: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
+<div class="stats-bar">
+    <div class="fire-counter" id="fireStreak">🔥 0</div>
+    <table class="leaderboard">
+        <thead>
+            <tr><th>🏆 Повар</th><th>🍳</th><th>📸</th><th>⭐</th></tr>
+        </thead>
+        <tbody id="leaderboardBody"></tbody>
+    </table>
+</div>
+
 <div class="auth-header">
-    <div id="userProfile" class="user-pill"><b>Загрузка...</b></div>
-    <div id="loginUI">
-        <div id="g_id_onload"
-             data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
-             data-callback="onGoogleSignIn"
-             data-auto_prompt="false">
-        </div>
-        <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
-    </div>
+    <div id="userProfile"><b>...</b></div>
+    <div id="loginUI"><div class="g_id_signin" data-type="standard"></div></div>
 </div>
 
 <div class="container">
     <div class="month-nav">
-        <button onclick="moveMonth(-1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❮</button>
+        <button onclick="moveMonth(-1)" style="border:none;background:none;font-size:20px;">❮</button>
         <b id="monthDisplay"></b>
-        <button onclick="moveMonth(1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❯</button>
+        <button onclick="moveMonth(1)" style="border:none;background:none;font-size:20px;">❯</button>
     </div>
     <div class="calendar-grid" id="calendar"></div>
 
     <div id="dayView" hidden>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
-            <button onclick="document.getElementById('dayView').hidden=true" style="border:none; background:#eee; padding:5px 10px; border-radius:8px;">✕</button>
+            <div>
+                <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
+                <div id="dayRank" style="font-size: 12px; color: var(--gray);"></div>
+            </div>
+            <button onclick="document.getElementById('dayView').hidden=true" style="border:none; background:#eee; padding:8px 15px; border-radius:8px;">Закрыть</button>
         </div>
+
+        <div id="planSection" style="background:#fff7ed; padding:15px; border-radius:12px; margin-bottom:15px; display:none;">
+            <label style="font-size:12px; font-weight:bold;">ЗАПЛАНИРОВАТЬ ШЕФА:</label>
+            <div style="display:flex; gap:5px; margin-top:8px;">
+                <select id="planChefSelect" style="flex:1; padding:8px; border-radius:8px;"></select>
+                <button onclick="savePlan()" style="background:var(--warning); color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:600;">OK</button>
+            </div>
+        </div>
+
         <div id="actionContainer"></div>
-        <div id="uploadForm" style="display:none; margin-top:15px;">
-            <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ СЕГОДНЯ?</label>
+
+        <div id="uploadForm" style="display:none; margin-top:15px; border-top: 1px solid #eee; padding-top:15px;">
+            <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ?</label>
             <select id="chefSelect" style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
             <button id="saveBtn" onclick="finalizePost()" style="width:100%; padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:600;">Опубликовать</button>
         </div>
+
         <div id="postHistory"></div>
     </div>
 </div>
@@ -100,14 +133,18 @@
     <video id="webcam" autoplay playsinline></video>
     <div style="height:25%; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:20px;">
         <div class="shutter" onclick="capturePhoto()"></div>
-        <button onclick="closeCamera()" style="background:none; border:none; color:white; cursor:pointer;">Отмена</button>
+        <button onclick="closeCamera()" style="background:none; border:none; color:white;">Отмена</button>
     </div>
 </div>
-
 <canvas id="photoCanvas" style="display:none;"></canvas>
 
+<div id="g_id_onload"
+     data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
+     data-callback="onGoogleSignIn"
+     data-auto_prompt="false">
+</div>
+
 <script>
-// --- КОНФИГУРАЦИЯ FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyA123c63SiYKZ6gUutup51cUEFk2eW-hY8",
     authDomain: "egfesf.firebaseapp.com",
@@ -118,66 +155,58 @@ const firebaseConfig = {
     databaseURL: "https://egfesf-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
-// Инициализация
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
 const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
+const SEQUENCE = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"]; // Базовая последовательность
 let currentUser = null;
 let viewDate = new Date();
 let selectedKey = "";
 let tempImage = null;
-let globalData = {};
+let globalData = { posts: {}, plans: {} };
 
-// 1. СЛУШАТЕЛЬ СОСТОЯНИЯ (Аккаунт не слетит при обновлении)
-auth.onAuthStateChanged((user) => {
+// Инициализация Auth
+auth.onAuthStateChanged(user => {
+    currentUser = user;
     if (user) {
-        currentUser = user;
         document.getElementById("userProfile").innerHTML = `
             <div style="display:flex; align-items:center; gap:8px;">
-                <img src="${user.photoURL}" style="width:32px; border-radius:50%;">
-                <div>
-                    <div style="font-size:13px; font-weight:bold;">${user.displayName}</div>
-                    <button class="logout-btn" onclick="auth.signOut()">Выйти</button>
-                </div>
-            </div>
-        `;
+                <img src="${user.photoURL}" style="width:30px; border-radius:50%;">
+                <button class="logout-btn" style="background:none;border:none;color:red;font-size:10px;padding:0" onclick="auth.signOut()">Выход</button>
+            </div>`;
         document.getElementById("loginUI").style.display = "none";
     } else {
-        currentUser = null;
-        document.getElementById("userProfile").innerHTML = "<b>Вход не выполнен</b>";
+        document.getElementById("userProfile").innerHTML = "<b>Вход</b>";
         document.getElementById("loginUI").style.display = "block";
     }
     render();
 });
 
-// 2. ИСПРАВЛЕННАЯ ФУНКЦИЯ ВХОДА
-function onGoogleSignIn(response) {
-    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-    auth.signInWithCredential(credential).catch(e => {
-        console.error("Firebase Auth Error:", e);
-        alert("Ошибка авторизации. Убедитесь, что Google включен в консоли Firebase Authentication.");
-    });
+function onGoogleSignIn(resp) {
+    auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(resp.credential));
 }
 
-// 3. РАБОТА С БАЗОЙ
-db.ref("cook_posts").on("value", (snapshot) => {
-    globalData = snapshot.val() || {};
+// Загрузка данных
+db.ref("/").on("value", snap => {
+    const val = snap.val() || {};
+    globalData.posts = val.cook_posts || {};
+    globalData.plans = val.cook_plans || {};
     render();
-    if (!document.getElementById("dayView").hidden) updateHistory();
+    if (!document.getElementById("dayView").hidden) updateDayUI();
 });
 
 function render() {
+    updateStats();
     const grid = document.getElementById("calendar");
     grid.innerHTML = "";
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     const now = new Date();
-    const todayKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+    const todayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
 
     document.getElementById("monthDisplay").innerText = new Intl.DateTimeFormat('ru-RU', {month:'long', year:'numeric'}).format(viewDate);
-
     ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => {
         const h = document.createElement("div"); h.className="weekday"; h.innerText=d; grid.appendChild(h);
     });
@@ -187,102 +216,212 @@ function render() {
 
     for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement("div"));
 
+    // Логика цепочки (Огоньков)
+    const sortedKeys = Object.keys(globalData.posts).sort((a,b) => new Date(a) - new Date(b));
+    let sequenceValid = true;
+    let fires = {};
+
     for(let d=1; d<=daysInMonth; d++) {
         const key = `${year}-${month+1}-${d}`;
         const dayEl = document.createElement("div");
-        dayEl.className = `day ${key === todayKey ? 'today' : ''} ${globalData[key] ? 'has-data' : ''}`;
-        dayEl.innerText = d;
+        const hasPost = globalData.posts[key];
+        const hasPlan = globalData.plans[key];
+
+        // Проверка последовательности (упрощенно: последний пост определяет следующий)
+        // Здесь можно добавить проверку на 🔥
+
+        dayEl.className = `day ${key === todayStr ? 'today' : ''} ${hasPost ? 'has-data' : ''} ${hasPlan ? 'planned' : ''}`;
+
+        // Рисуем 🔥 если этот день часть правильной цепочки
+        if (hasPost && isFireDay(key)) dayEl.classList.add("fire-day");
+
+        dayEl.innerHTML = `<div>${d}</div>`;
+        if (hasPlan || hasPost) {
+            const name = hasPost ? Object.values(hasPost)[0].chef : hasPlan;
+            dayEl.innerHTML += `<div class="day-chef">${name}</div>`;
+        }
+
         dayEl.onclick = () => openDay(key);
         grid.appendChild(dayEl);
     }
 }
 
+function isFireDay(key) {
+    // День - огонек, если есть пост, он одобрен и он идет по очереди после предыдущего одобренного поста
+    const posts = globalData.posts[key];
+    if (!posts) return false;
+    const post = Object.values(posts)[0];
+    if (getPostStatus(post) !== 'approved') return false;
+
+    // Находим предыдущий одобренный пост
+    const allKeys = Object.keys(globalData.posts).filter(k => new Date(k) < new Date(key)).sort((a,b) => new Date(b) - new Date(a));
+    if (allKeys.length === 0) return true; // Первый пост всегда ок
+
+    const prevKey = allKeys[0];
+    const prevPost = Object.values(globalData.posts[prevKey])[0];
+
+    const curIdx = SEQUENCE.indexOf(post.chef);
+    const prevIdx = SEQUENCE.indexOf(prevPost.chef);
+
+    return curIdx === (prevIdx + 1) % SEQUENCE.length;
+}
+
+function updateStats() {
+    let stats = {};
+    CHEFS.forEach(c => stats[c] = {cook:0, posts:0, votes:0});
+
+    let streak = 0;
+    const allKeys = Object.keys(globalData.posts).sort((a,b) => new Date(a) - new Date(b));
+
+    allKeys.forEach(k => {
+        const dayPosts = Object.values(globalData.posts[k]);
+        dayPosts.forEach(p => {
+            if (stats[p.chef]) {
+                stats[p.chef].posts++;
+                if (getPostStatus(p) === 'approved') stats[p.chef].cook++;
+                stats[p.chef].votes += Object.keys(p.votes || {}).length;
+            }
+        });
+        if (isFireDay(k)) streak++; else streak = 0;
+    });
+
+    document.getElementById("fireStreak").innerText = `🔥 ${streak}`;
+
+    const sorted = CHEFS.sort((a,b) => stats[b].cook - stats[a].cook);
+    document.getElementById("leaderboardBody").innerHTML = sorted.map((name, i) => {
+        const medals = ['🥇','🥈','🥉'];
+        return `<tr>
+            <td>${medals[i] || ''} ${name}</td>
+            <td>${stats[name].cook}</td>
+            <td>${stats[name].posts}</td>
+            <td>${stats[name].votes}</td>
+        </tr>`;
+    }).join("");
+}
+
 function openDay(key) {
     selectedKey = key;
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
-
     document.getElementById("dayView").hidden = false;
-    document.getElementById("selectedDateTitle").innerText = key === todayKey ? "Сегодня" : key;
-    document.getElementById("uploadForm").style.display = "none";
+    updateDayUI();
+}
+
+function updateDayUI() {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+    const diffDays = Math.ceil((new Date(selectedKey) - now) / (1000*60*60*24));
+
+    document.getElementById("selectedDateTitle").innerText = selectedKey === todayStr ? "Сегодня" : selectedKey;
+
+    // Секция планирования (доступна на 7 дней вперед)
+    const planSec = document.getElementById("planSection");
+    if (diffDays > 0 && diffDays <= 7) {
+        planSec.style.display = "block";
+        document.getElementById("planChefSelect").innerHTML = CHEFS.map(c => `<option value="${c}" ${globalData.plans[selectedKey] === c ? 'selected':''}>${c}</option>`).join("");
+    } else {
+        planSec.style.display = "none";
+    }
 
     const actions = document.getElementById("actionContainer");
     if (!currentUser) {
-        actions.innerHTML = `<div style="background:#fef2f2; color:#danger; padding:12px; border-radius:12px; text-align:center;">Нужно войти для записи</div>`;
-    } else if (key !== todayKey) {
-        actions.innerHTML = `<div style="background:#f8fafc; color:#64748b; padding:12px; border-radius:12px; text-align:center;">Только история (фото только сегодня)</div>`;
-    } else {
+        actions.innerHTML = `<div style="text-align:center;color:red">Войдите для действий</div>`;
+    } else if (selectedKey === todayStr) {
         actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
+    } else {
+        actions.innerHTML = "";
     }
 
-    const select = document.getElementById("chefSelect");
-    select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
-
+    document.getElementById("chefSelect").innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
     updateHistory();
 }
 
-async function openCamera() {
-    const overlay = document.getElementById("cameraOverlay");
-    const video = document.getElementById("webcam");
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-        video.srcObject = stream;
-        overlay.style.display = "flex";
-    } catch (e) { alert("Доступ к камере отклонен."); }
+function savePlan() {
+    const chef = document.getElementById("planChefSelect").value;
+    db.ref("cook_plans/" + selectedKey).set(chef);
 }
 
+// Камера
+async function openCamera() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    document.getElementById("webcam").srcObject = stream;
+    document.getElementById("cameraOverlay").style.display = "flex";
+}
 function capturePhoto() {
-    const video = document.getElementById("webcam");
-    const canvas = document.getElementById("photoCanvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    tempImage = canvas.toDataURL("image/jpeg", 0.4);
+    const v = document.getElementById("webcam");
+    const c = document.getElementById("photoCanvas");
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext("2d").drawImage(v, 0, 0);
+    tempImage = c.toDataURL("image/jpeg", 0.4);
     closeCamera();
     document.getElementById("uploadForm").style.display = "block";
 }
-
 function closeCamera() {
-    const video = document.getElementById("webcam");
-    if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+    const v = document.getElementById("webcam");
+    if(v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
     document.getElementById("cameraOverlay").style.display = "none";
 }
 
 function finalizePost() {
-    if (!currentUser) return alert("Войдите в аккаунт!");
-    const btn = document.getElementById("saveBtn");
-    btn.disabled = true;
-    btn.innerText = "Загрузка...";
-
     const postData = {
         img: tempImage,
         chef: document.getElementById("chefSelect").value,
         author: currentUser.displayName,
-        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        authorId: currentUser.uid,
+        time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+        votes: {}
     };
-
     db.ref("cook_posts/" + selectedKey).push(postData).then(() => {
-        btn.disabled = false;
-        btn.innerText = "Опубликовать";
         document.getElementById("uploadForm").style.display = "none";
-    }).catch(e => {
-        alert("Ошибка доступа: " + e.message);
-        btn.disabled = false;
     });
 }
 
+function getPostStatus(post) {
+    const votes = Object.values(post.votes || {});
+    const ups = votes.filter(v => v.type === 'up').length;
+    const downs = votes.filter(v => v.type === 'down').length;
+    if (downs >= 2) return 'rejected';
+    if (ups >= 2) return 'approved';
+    return 'pending';
+}
+
 function updateHistory() {
-    const posts = globalData[selectedKey] ? Object.values(globalData[selectedKey]) : [];
+    const postsObj = globalData.posts[selectedKey] || {};
     const container = document.getElementById("postHistory");
-    container.innerHTML = posts.map(p => `
-        <div class="post-item">
-            <img src="${p.img}">
-            <div style="padding:12px; font-size:14px;">
-                <b>${p.chef}</b> готовил(а)<br>
-                <span style="font-size:11px; color:#64748b;">👤 ${p.author} • ⏰ ${p.time}</span>
+
+    container.innerHTML = Object.entries(postsObj).reverse().map(([id, p]) => {
+        const status = getPostStatus(p);
+        const isOk = isFireDay(selectedKey);
+        const votes = Object.values(p.votes || {});
+
+        return `
+            <div class="post-item ${status} ${isOk ? 'sequence-ok' : ''}">
+                <div class="post-content">
+                    <img src="${p.img}" style="width:100%">
+                    <div style="padding:10px">
+                        <b>${p.chef}</b> ${isOk ? '🔥' : ''}<br>
+                        <small>${p.time} | Автор: ${p.author}</small>
+                    </div>
+                </div>
+                ${status === 'rejected' ? `<div style="padding:10px; color:red; font-size:12px;" onclick="this.parentElement.classList.toggle('rejected')">⚠️ Пост отклонен (Нажми чтобы развернуть)</div>` : ''}
+                <div class="vote-bar">
+                    <button class="vote-btn" onclick="vote('${id}', 'up')" ${p.authorId === currentUser?.uid ? 'disabled':''}>👍 ${votes.filter(v=>v.type==='up').length}</button>
+                    <button class="vote-btn" onclick="vote('${id}', 'down')" ${p.authorId === currentUser?.uid ? 'disabled':''}>👎 ${votes.filter(v=>v.type==='down').length}</button>
+                    <div class="voter-list">
+                        ${votes.map(v => `<img src="${v.photo}" class="voter-img" title="${v.name}">`).join("")}
+                    </div>
+                    <span style="font-size:10px; color:gray; margin-left:auto">${status === 'pending' ? 'Ожидание...' : ''}</span>
+                </div>
             </div>
-        </div>
-    `).reverse().join("");
+        `;
+    }).join("");
+}
+
+function vote(postId, type) {
+    if (!currentUser) return;
+    db.ref(`cook_posts/${selectedKey}/${postId}/votes/${currentUser.uid}`).set({
+        type: type,
+        name: currentUser.displayName,
+        photo: currentUser.photoURL
+    });
 }
 
 function moveMonth(dir) {
