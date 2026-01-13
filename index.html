@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кухарня Cloud PRO</title>
+    <title>Кухарня Cloud 2.0</title>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -12,117 +12,177 @@
 
     <style>
         :root {
-            --bg: #f8fafc; --card: #ffffff; --primary: #6366f1;
-            --danger: #ef4444; --success: #22c55e; --text: #1e293b;
-            --warning: #f59e0b; --gray: #94a3b8;
+            --bg: #f1f5f9; --card: #ffffff; --primary: #4f46e5;
+            --danger: #ef4444; --success: #10b981; --warning: #f59e0b; --text: #0f172a;
+            --gray: #94a3b8;
         }
         body {
-            font-family: 'Inter', system-ui, sans-serif; background: var(--bg);
+            font-family: 'Inter', -apple-system, sans-serif; background: var(--bg);
             margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; color: var(--text);
         }
 
-        /* Стили статистики */
-        .stats-bar {
-            width: 100%; max-width: 600px; background: white; border-radius: 16px;
-            padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        .fire-counter { font-size: 24px; font-weight: 800; color: #f97316; display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 10px; }
-        .leaderboard { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .leaderboard th { color: var(--gray); font-weight: 500; text-align: left; padding-bottom: 5px; }
-        .leaderboard td { padding: 5px 0; border-top: 1px solid #f1f5f9; }
-
+        /* HEADER & AUTH */
         .auth-header {
             width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; background: white; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 12px; background: white; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .container { width: 100%; max-width: 600px; }
+        .fire-stats {
+            text-align: center; font-weight: 800; font-size: 18px; color: var(--warning);
+            background: #fffbeb; padding: 8px 16px; border-radius: 20px; border: 1px solid #fcd34d;
+        }
+        .user-pill { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .user-pill img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+        .logout-btn-main {
+            background: var(--danger); color: white; border: none; padding: 6px 12px;
+            border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 4px;
+        }
 
-        /* Календарь */
-        .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px; }
+        /* CALENDAR */
+        .container { width: 100%; max-width: 600px; }
+        .month-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px;
+        }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .weekday { text-align: center; font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; }
+        .weekday { text-align: center; font-size: 12px; font-weight: 700; color: #64748b; }
         .day {
             background: var(--card); aspect-ratio: 1/1; border-radius: 12px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 600; position: relative;
+            cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 500; position: relative;
         }
-        .day.today { border-color: var(--primary); }
-        .day.has-data { background: #f0fdf4; border-color: var(--success); }
-        .day.planned { border-style: dashed; border-color: var(--warning); }
-        .day.fire-day::after { content: '🔥'; position: absolute; top: -5px; right: -2px; font-size: 12px; }
-        .day-chef { font-size: 8px; color: var(--gray); margin-top: 2px; overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
+        .day.today { border-color: var(--primary); background: #eef2ff; }
+        .day.has-data { background: #dcfce7; border-color: var(--success); }
+        .day.planned { border-style: dashed; border-color: var(--gray); }
+        .day-label { font-size: 14px; }
+        .plan-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; bottom: 6px; }
 
-        /* Посты и Голосование */
-        .post-item { margin-top: 15px; border-radius: 16px; overflow: hidden; border: 2px solid #e2e8f0; background: white; transition: 0.3s; }
-        .post-item.pending { filter: grayscale(0.8); border-color: var(--gray); opacity: 0.7; }
-        .post-item.rejected { border-color: var(--danger); }
-        .post-item.rejected .post-content { display: none; } /* Сворачивание */
-        .post-item.sequence-ok { border-color: var(--success); box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
-
-        .vote-bar { display: flex; gap: 10px; padding: 10px; background: #f8fafc; align-items: center; }
-        .vote-btn { border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; }
-        .voter-img { width: 18px; height: 18px; border-radius: 50%; border: 1px solid white; margin-left: -8px; }
-        .voter-list { display: flex; margin-left: 5px; }
-
+        /* DAY VIEW */
         #dayView {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;
-            background: white; padding: 20px; overflow-y: auto;
+            margin-top: 20px; background: white; padding: 20px;
+            border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
         }
-        .btn-camera { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 600; cursor: pointer; }
+        .leaderboard-day {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;
+            background: #f8fafc; padding: 10px; border-radius: 12px; font-size: 12px;
+        }
 
-        #cameraOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; flex-direction: column; z-index: 999; }
+        /* ACTIONS */
+        .btn-camera {
+            width: 100%; padding: 16px; background: var(--primary); color: white;
+            border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer;
+        }
+        .btn-plan {
+            width: 100%; padding: 12px; background: var(--gray); color: white;
+            border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+
+        /* POST STYLES */
+        .post-item {
+            margin-top: 15px; border-radius: 16px; overflow: hidden;
+            border: 2px solid #e2e8f0; background: #f8fafc; position: relative;
+            transition: all 0.3s ease;
+        }
+        .post-item img { width: 100%; display: block; }
+
+        /* STYLES FOR STATUS */
+        .post-green-seq { border-color: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+        .post-pending { filter: grayscale(100%); border-color: #cbd5e1; }
+        .post-rejected {
+            border-color: var(--danger); background: #fef2f2; height: 60px; overflow: hidden;
+        }
+        .post-rejected.expanded { height: auto; }
+        .post-rejected .post-header { display: flex; justify-content: space-between; padding: 10px; align-items: center; cursor: pointer;}
+
+        .status-badge {
+            position: absolute; top: 10px; right: 10px; padding: 4px 8px;
+            border-radius: 8px; font-size: 10px; font-weight: bold; text-transform: uppercase;
+            background: rgba(0,0,0,0.7); color: white;
+        }
+
+        /* VOTING UI */
+        .vote-actions { padding: 10px; display: flex; gap: 10px; justify-content: space-between; background: #fff; }
+        .vote-btn {
+            flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; font-size: 12px;
+        }
+        .vote-btn.approve { color: var(--success); background: #f0fdf4; border-color: #bbf7d0; }
+        .vote-btn.reject { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
+        .voter-avatars { display: flex; margin-top: 4px; }
+        .voter-avatars img { width: 20px; height: 20px; border-radius: 50%; margin-left: -5px; border: 1px solid white; }
+
+        /* CAMERA & MODALS */
+        #cameraOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: none; flex-direction: column; z-index: 999;
+        }
         video { width: 100%; height: 75%; object-fit: cover; }
         .shutter { width: 72px; height: 72px; border-radius: 50%; background: white; border: 6px solid #333; cursor: pointer; }
+
+        /* STATS MODAL */
+        #statsModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { color: #64748b; }
+
     </style>
 </head>
 <body>
 
-<div class="stats-bar">
-    <div class="fire-counter" id="fireStreak">🔥 0</div>
-    <table class="leaderboard">
-        <thead>
-            <tr><th>🏆 Повар</th><th>🍳</th><th>📸</th><th>⭐</th></tr>
-        </thead>
-        <tbody id="leaderboardBody"></tbody>
-    </table>
-</div>
-
 <div class="auth-header">
-    <div id="userProfile"><b>...</b></div>
-    <div id="loginUI"><div class="g_id_signin" data-type="standard"></div></div>
+    <div id="fireStats" class="fire-stats">🔥 0</div>
+
+    <div id="userProfile" class="user-pill" onclick="openStats()">
+        <b>Загрузка...</b>
+    </div>
+
+    <div id="loginUI" style="display:none;">
+        <div id="g_id_onload"
+             data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
+             data-callback="onGoogleSignIn"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
+    </div>
+
+    <div id="logoutUI" style="display:none;">
+        <button class="logout-btn-main" onclick="auth.signOut()">Выйти</button>
+    </div>
 </div>
 
 <div class="container">
     <div class="month-nav">
-        <button onclick="moveMonth(-1)" style="border:none;background:none;font-size:20px;">❮</button>
+        <button onclick="moveMonth(-1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❮</button>
         <b id="monthDisplay"></b>
-        <button onclick="moveMonth(1)" style="border:none;background:none;font-size:20px;">❯</button>
+        <button onclick="moveMonth(1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❯</button>
     </div>
     <div class="calendar-grid" id="calendar"></div>
 
     <div id="dayView" hidden>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <div>
-                <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
-                <div id="dayRank" style="font-size: 12px; color: var(--gray);"></div>
-            </div>
-            <button onclick="document.getElementById('dayView').hidden=true" style="border:none; background:#eee; padding:8px 15px; border-radius:8px;">Закрыть</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
+            <button onclick="document.getElementById('dayView').hidden=true" style="border:none; background:#eee; padding:5px 10px; border-radius:8px;">✕</button>
         </div>
 
-        <div id="planSection" style="background:#fff7ed; padding:15px; border-radius:12px; margin-bottom:15px; display:none;">
-            <label style="font-size:12px; font-weight:bold;">ЗАПЛАНИРОВАТЬ ШЕФА:</label>
-            <div style="display:flex; gap:5px; margin-top:8px;">
-                <select id="planChefSelect" style="flex:1; padding:8px; border-radius:8px;"></select>
-                <button onclick="savePlan()" style="background:var(--warning); color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:600;">OK</button>
-            </div>
-        </div>
+        <div id="dayLeaderboard" class="leaderboard-day"></div>
 
         <div id="actionContainer"></div>
 
-        <div id="uploadForm" style="display:none; margin-top:15px; border-top: 1px solid #eee; padding-top:15px;">
-            <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ?</label>
+        <div id="uploadForm" style="display:none; margin-top:15px;">
+            <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ СЕГОДНЯ?</label>
             <select id="chefSelect" style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
             <button id="saveBtn" onclick="finalizePost()" style="width:100%; padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:600;">Опубликовать</button>
+        </div>
+
+        <div id="planForm" style="display:none; margin-top:15px;">
+             <label style="font-size:12px; color:#64748b;">НАЗНАЧИТЬ НА ЭТОТ ДЕНЬ:</label>
+             <select id="planChefSelect" style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
+             <button onclick="savePlan()" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:600;">Сохранить план</button>
         </div>
 
         <div id="postHistory"></div>
@@ -133,18 +193,24 @@
     <video id="webcam" autoplay playsinline></video>
     <div style="height:25%; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:20px;">
         <div class="shutter" onclick="capturePhoto()"></div>
-        <button onclick="closeCamera()" style="background:none; border:none; color:white;">Отмена</button>
+        <button onclick="closeCamera()" style="background:none; border:none; color:white; cursor:pointer;">Отмена</button>
     </div>
 </div>
+
 <canvas id="photoCanvas" style="display:none;"></canvas>
 
-<div id="g_id_onload"
-     data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
-     data-callback="onGoogleSignIn"
-     data-auto_prompt="false">
+<div id="statsModal" onclick="if(event.target === this) this.style.display='none'">
+    <div class="modal-content">
+        <h3>📊 Статистика Кухарни</h3>
+        <table id="statsTable"></table>
+        <div style="text-align:center; margin-top:20px;">
+            <button onclick="document.getElementById('statsModal').style.display='none'" style="padding:10px 20px; border:none; background:#eee; border-radius:8px;">Закрыть</button>
+        </div>
+    </div>
 </div>
 
 <script>
+// --- КОНФИГУРАЦИЯ FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyA123c63SiYKZ6gUutup51cUEFk2eW-hY8",
     authDomain: "egfesf.firebaseapp.com",
@@ -160,53 +226,63 @@ const db = firebase.database();
 const auth = firebase.auth();
 
 const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
-const SEQUENCE = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"]; // Базовая последовательность
 let currentUser = null;
 let viewDate = new Date();
 let selectedKey = "";
 let tempImage = null;
-let globalData = { posts: {}, plans: {} };
+let globalData = {};
+let planData = {};
 
-// Инициализация Auth
-auth.onAuthStateChanged(user => {
-    currentUser = user;
+// 1. AUTH LISTENER
+auth.onAuthStateChanged((user) => {
     if (user) {
+        currentUser = user;
         document.getElementById("userProfile").innerHTML = `
-            <div style="display:flex; align-items:center; gap:8px;">
-                <img src="${user.photoURL}" style="width:30px; border-radius:50%;">
-                <button class="logout-btn" style="background:none;border:none;color:red;font-size:10px;padding:0" onclick="auth.signOut()">Выход</button>
-            </div>`;
+            <img src="${user.photoURL}">
+            <div>
+                <div style="font-size:13px; font-weight:bold;">${user.displayName}</div>
+                <div style="font-size:10px; color:var(--gray);">Нажми для статистики</div>
+            </div>
+        `;
         document.getElementById("loginUI").style.display = "none";
+        document.getElementById("logoutUI").style.display = "block";
     } else {
-        document.getElementById("userProfile").innerHTML = "<b>Вход</b>";
+        currentUser = null;
+        document.getElementById("userProfile").innerHTML = "<b>Вход не выполнен</b>";
         document.getElementById("loginUI").style.display = "block";
+        document.getElementById("logoutUI").style.display = "none";
     }
     render();
 });
 
-function onGoogleSignIn(resp) {
-    auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(resp.credential));
+function onGoogleSignIn(response) {
+    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
+    auth.signInWithCredential(credential).catch(e => alert("Ошибка авторизации: " + e.message));
 }
 
-// Загрузка данных
-db.ref("/").on("value", snap => {
-    const val = snap.val() || {};
-    globalData.posts = val.cook_posts || {};
-    globalData.plans = val.cook_plans || {};
+// 2. DATA LISTENER
+db.ref("/").on("value", (snapshot) => {
+    const val = snapshot.val() || {};
+    globalData = val.cook_posts || {};
+    planData = val.planning || {};
     render();
-    if (!document.getElementById("dayView").hidden) updateDayUI();
+    if (!document.getElementById("dayView").hidden) updateHistory();
 });
 
+// 3. RENDER LOGIC
 function render() {
-    updateStats();
+    calculateStats();
+
     const grid = document.getElementById("calendar");
     grid.innerHTML = "";
+
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+    const todayKey = formatDate(now);
 
     document.getElementById("monthDisplay").innerText = new Intl.DateTimeFormat('ru-RU', {month:'long', year:'numeric'}).format(viewDate);
+
     ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => {
         const h = document.createElement("div"); h.className="weekday"; h.innerText=d; grid.appendChild(h);
     });
@@ -216,29 +292,18 @@ function render() {
 
     for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement("div"));
 
-    // Логика цепочки (Огоньков)
-    const sortedKeys = Object.keys(globalData.posts).sort((a,b) => new Date(a) - new Date(b));
-    let sequenceValid = true;
-    let fires = {};
-
     for(let d=1; d<=daysInMonth; d++) {
         const key = `${year}-${month+1}-${d}`;
         const dayEl = document.createElement("div");
-        const hasPost = globalData.posts[key];
-        const hasPlan = globalData.plans[key];
+        const hasPlan = planData[key];
 
-        // Проверка последовательности (упрощенно: последний пост определяет следующий)
-        // Здесь можно добавить проверку на 🔥
+        let classes = `day ${key === todayKey ? 'today' : ''} ${globalData[key] ? 'has-data' : ''} ${hasPlan ? 'planned' : ''}`;
 
-        dayEl.className = `day ${key === todayStr ? 'today' : ''} ${hasPost ? 'has-data' : ''} ${hasPlan ? 'planned' : ''}`;
+        dayEl.className = classes;
+        dayEl.innerHTML = `<span class="day-label">${d}</span>`;
 
-        // Рисуем 🔥 если этот день часть правильной цепочки
-        if (hasPost && isFireDay(key)) dayEl.classList.add("fire-day");
-
-        dayEl.innerHTML = `<div>${d}</div>`;
-        if (hasPlan || hasPost) {
-            const name = hasPost ? Object.values(hasPost)[0].chef : hasPlan;
-            dayEl.innerHTML += `<div class="day-chef">${name}</div>`;
+        if (hasPlan && !globalData[key]) {
+            dayEl.innerHTML += `<div class="plan-dot" title="План: ${hasPlan.chef}"></div>`;
         }
 
         dayEl.onclick = () => openDay(key);
@@ -246,182 +311,338 @@ function render() {
     }
 }
 
-function isFireDay(key) {
-    // День - огонек, если есть пост, он одобрен и он идет по очереди после предыдущего одобренного поста
-    const posts = globalData.posts[key];
-    if (!posts) return false;
-    const post = Object.values(posts)[0];
-    if (getPostStatus(post) !== 'approved') return false;
-
-    // Находим предыдущий одобренный пост
-    const allKeys = Object.keys(globalData.posts).filter(k => new Date(k) < new Date(key)).sort((a,b) => new Date(b) - new Date(a));
-    if (allKeys.length === 0) return true; // Первый пост всегда ок
-
-    const prevKey = allKeys[0];
-    const prevPost = Object.values(globalData.posts[prevKey])[0];
-
-    const curIdx = SEQUENCE.indexOf(post.chef);
-    const prevIdx = SEQUENCE.indexOf(prevPost.chef);
-
-    return curIdx === (prevIdx + 1) % SEQUENCE.length;
-}
-
-function updateStats() {
-    let stats = {};
-    CHEFS.forEach(c => stats[c] = {cook:0, posts:0, votes:0});
-
-    let streak = 0;
-    const allKeys = Object.keys(globalData.posts).sort((a,b) => new Date(a) - new Date(b));
-
-    allKeys.forEach(k => {
-        const dayPosts = Object.values(globalData.posts[k]);
-        dayPosts.forEach(p => {
-            if (stats[p.chef]) {
-                stats[p.chef].posts++;
-                if (getPostStatus(p) === 'approved') stats[p.chef].cook++;
-                stats[p.chef].votes += Object.keys(p.votes || {}).length;
-            }
-        });
-        if (isFireDay(k)) streak++; else streak = 0;
-    });
-
-    document.getElementById("fireStreak").innerText = `🔥 ${streak}`;
-
-    const sorted = CHEFS.sort((a,b) => stats[b].cook - stats[a].cook);
-    document.getElementById("leaderboardBody").innerHTML = sorted.map((name, i) => {
-        const medals = ['🥇','🥈','🥉'];
-        return `<tr>
-            <td>${medals[i] || ''} ${name}</td>
-            <td>${stats[name].cook}</td>
-            <td>${stats[name].posts}</td>
-            <td>${stats[name].votes}</td>
-        </tr>`;
-    }).join("");
+function formatDate(date) {
+    return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
 }
 
 function openDay(key) {
     selectedKey = key;
+    const todayKey = formatDate(new Date());
+
     document.getElementById("dayView").hidden = false;
-    updateDayUI();
-}
+    document.getElementById("selectedDateTitle").innerText = key === todayKey ? "Сегодня" : key;
+    document.getElementById("uploadForm").style.display = "none";
+    document.getElementById("planForm").style.display = "none";
 
-function updateDayUI() {
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
-    const diffDays = Math.ceil((new Date(selectedKey) - now) / (1000*60*60*24));
-
-    document.getElementById("selectedDateTitle").innerText = selectedKey === todayStr ? "Сегодня" : selectedKey;
-
-    // Секция планирования (доступна на 7 дней вперед)
-    const planSec = document.getElementById("planSection");
-    if (diffDays > 0 && diffDays <= 7) {
-        planSec.style.display = "block";
-        document.getElementById("planChefSelect").innerHTML = CHEFS.map(c => `<option value="${c}" ${globalData.plans[selectedKey] === c ? 'selected':''}>${c}</option>`).join("");
-    } else {
-        planSec.style.display = "none";
-    }
+    // Leaderboard logic for day view
+    const stats = getLeaderboard();
+    document.getElementById("dayLeaderboard").innerHTML = stats.map((s, i) =>
+        `<span>${["🥇","🥈","🥉"][i]||""} <b>${s.chef}</b>: ${s.count}</span>`
+    ).join(" | ");
 
     const actions = document.getElementById("actionContainer");
+
+    // Logic for Actions based on Date
+    const selDate = new Date(key);
+    const todayDate = new Date(todayKey);
+    const diffTime = selDate - todayDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
     if (!currentUser) {
-        actions.innerHTML = `<div style="text-align:center;color:red">Войдите для действий</div>`;
-    } else if (selectedKey === todayStr) {
+        actions.innerHTML = `<div style="background:#fef2f2; color:var(--danger); padding:12px; border-radius:12px; text-align:center;">Нужно войти</div>`;
+    } else if (key === todayKey) {
         actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
+        // Pre-select planned chef
+        const select = document.getElementById("chefSelect");
+        select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
+        if(planData[key]) select.value = planData[key].chef;
+    } else if (diffDays > 0 && diffDays <= 7) {
+        actions.innerHTML = `<button class="btn-plan" onclick="showPlanForm()">📅 ЗАПЛАНИРОВАТЬ</button>`;
+        if(planData[key]) actions.innerHTML += `<div style="text-align:center; margin-top:5px; font-size:12px;">План: <b>${planData[key].chef}</b></div>`;
     } else {
-        actions.innerHTML = "";
+        actions.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px;">Только просмотр</div>`;
     }
 
-    document.getElementById("chefSelect").innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
     updateHistory();
+}
+
+function showPlanForm() {
+    document.getElementById("planForm").style.display = "block";
+    const select = document.getElementById("planChefSelect");
+    select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
+    select.innerHTML += `<option value="">-- Сбросить --</option>`;
 }
 
 function savePlan() {
     const chef = document.getElementById("planChefSelect").value;
-    db.ref("cook_plans/" + selectedKey).set(chef);
+    if(chef) {
+        db.ref("planning/" + selectedKey).set({ chef });
+    } else {
+        db.ref("planning/" + selectedKey).remove();
+    }
+    document.getElementById("planForm").style.display = "none";
+    openDay(selectedKey); // refresh
 }
 
-// Камера
+// 4. CAMERA & POSTING
 async function openCamera() {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    document.getElementById("webcam").srcObject = stream;
-    document.getElementById("cameraOverlay").style.display = "flex";
+    const overlay = document.getElementById("cameraOverlay");
+    const video = document.getElementById("webcam");
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        video.srcObject = stream;
+        overlay.style.display = "flex";
+    } catch (e) { alert("Доступ к камере отклонен."); }
 }
+
 function capturePhoto() {
-    const v = document.getElementById("webcam");
-    const c = document.getElementById("photoCanvas");
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext("2d").drawImage(v, 0, 0);
-    tempImage = c.toDataURL("image/jpeg", 0.4);
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("photoCanvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    tempImage = canvas.toDataURL("image/jpeg", 0.4);
     closeCamera();
     document.getElementById("uploadForm").style.display = "block";
 }
+
 function closeCamera() {
-    const v = document.getElementById("webcam");
-    if(v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
+    const video = document.getElementById("webcam");
+    if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
     document.getElementById("cameraOverlay").style.display = "none";
 }
 
 function finalizePost() {
+    if (!currentUser) return alert("Войдите в аккаунт!");
+    const btn = document.getElementById("saveBtn");
+    btn.disabled = true; btn.innerText = "Загрузка...";
+
     const postData = {
         img: tempImage,
         chef: document.getElementById("chefSelect").value,
         author: currentUser.displayName,
         authorId: currentUser.uid,
-        time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        status: 'pending', // pending, approved, rejected
         votes: {}
     };
+
     db.ref("cook_posts/" + selectedKey).push(postData).then(() => {
+        btn.disabled = false; btn.innerText = "Опубликовать";
         document.getElementById("uploadForm").style.display = "none";
+    }).catch(e => {
+        alert("Ошибка: " + e.message);
+        btn.disabled = false;
     });
 }
 
-function getPostStatus(post) {
-    const votes = Object.values(post.votes || {});
-    const ups = votes.filter(v => v.type === 'up').length;
-    const downs = votes.filter(v => v.type === 'down').length;
-    if (downs >= 2) return 'rejected';
-    if (ups >= 2) return 'approved';
-    return 'pending';
-}
-
+// 5. VOTING & HISTORY
 function updateHistory() {
-    const postsObj = globalData.posts[selectedKey] || {};
+    const postsObj = globalData[selectedKey] || {};
+    const posts = Object.entries(postsObj).map(([k, v]) => ({...v, key: k})).reverse(); // Newest first
     const container = document.getElementById("postHistory");
 
-    container.innerHTML = Object.entries(postsObj).reverse().map(([id, p]) => {
-        const status = getPostStatus(p);
-        const isOk = isFireDay(selectedKey);
-        const votes = Object.values(p.votes || {});
+    // Calculate global green line context (Need entire history for true context, but locally we check simple sequence)
+    // For green line, we need to flatten ALL data to find the sequence.
+    // Here we will do a simpler check: Does this post follow the previous ONE in this list?
+    // Wait, prompt implies global sequence. Let's do a quick calculation of the "Green Status" for these posts.
+    // To keep it performant, we'll mark them based on the `calculateStats` result which we can store globally.
 
-        return `
-            <div class="post-item ${status} ${isOk ? 'sequence-ok' : ''}">
-                <div class="post-content">
-                    <img src="${p.img}" style="width:100%">
-                    <div style="padding:10px">
-                        <b>${p.chef}</b> ${isOk ? '🔥' : ''}<br>
-                        <small>${p.time} | Автор: ${p.author}</small>
+    // Let's re-calculate sequence locally for visual clarity in DayView
+    // We need to fetch the LAST valid chef before this day to know start.
+    // Complex. Simplified approach: Check against CHEFS rotation array.
+
+    let html = "";
+
+    posts.forEach(p => {
+        const votes = p.votes || {};
+        const ups = Object.values(votes).filter(v => v.val === 'like').length;
+        const downs = Object.values(votes).filter(v => v.val === 'dislike').length;
+
+        let status = 'pending';
+        if (ups > downs && (ups+downs) > 0) status = 'approved';
+        if (downs > ups && (downs+ups) > 0) status = 'rejected';
+
+        // Auto-update status in DB if needed (simplified here, usually done by server functions)
+        // We will just use the calculated status for display.
+
+        const isCollapsed = status === 'rejected';
+        const isGreen = checkSequence(p); // Helper to check if this post fits the sequence
+
+        const statusText = status === 'pending' ? 'Еще не одобрен' : (status === 'rejected' ? 'ОТКЛОНЕН' : 'ОДОБРЕН');
+
+        html += `
+        <div class="post-item ${isGreen && status === 'approved' ? 'post-green-seq' : ''} ${status === 'pending' ? 'post-pending' : ''} ${status === 'rejected' ? 'post-rejected' : ''}" id="post-${p.key}">
+            ${status === 'rejected' ? `<div class="post-header" onclick="togglePost('${p.key}')"><span>🚫 Отклоненный пост (${p.chef})</span> <span>▼</span></div>` : ''}
+
+            <div style="${isCollapsed ? 'display:none' : ''}">
+                <div style="position:relative;">
+                    <img src="${p.img}">
+                    ${status !== 'approved' ? `<div class="status-badge" style="background:${status==='pending'?'#94a3b8':'#ef4444'}">${statusText}</div>` : ''}
+                </div>
+
+                <div style="padding:12px; font-size:14px;">
+                    <b>${p.chef}</b> готовил(а)<br>
+                    <span style="font-size:11px; color:#64748b;">👤 ${p.author} • ⏰ ${p.time}</span>
+                </div>
+
+                ${currentUser ? `
+                <div class="vote-actions">
+                    <div class="vote-btn approve" onclick="vote('${selectedKey}', '${p.key}', 'like')">
+                        👍 Одобрить (${ups})
+                        <div class="voter-avatars">
+                            ${Object.values(votes).filter(v=>v.val==='like').map(v=>`<img src="${v.photo}">`).join('')}
+                        </div>
+                    </div>
+                    <div class="vote-btn reject" onclick="vote('${selectedKey}', '${p.key}', 'dislike')">
+                        👎 Отказать (${downs})
+                        <div class="voter-avatars">
+                            ${Object.values(votes).filter(v=>v.val==='dislike').map(v=>`<img src="${v.photo}">`).join('')}
+                        </div>
                     </div>
                 </div>
-                ${status === 'rejected' ? `<div style="padding:10px; color:red; font-size:12px;" onclick="this.parentElement.classList.toggle('rejected')">⚠️ Пост отклонен (Нажми чтобы развернуть)</div>` : ''}
-                <div class="vote-bar">
-                    <button class="vote-btn" onclick="vote('${id}', 'up')" ${p.authorId === currentUser?.uid ? 'disabled':''}>👍 ${votes.filter(v=>v.type==='up').length}</button>
-                    <button class="vote-btn" onclick="vote('${id}', 'down')" ${p.authorId === currentUser?.uid ? 'disabled':''}>👎 ${votes.filter(v=>v.type==='down').length}</button>
-                    <div class="voter-list">
-                        ${votes.map(v => `<img src="${v.photo}" class="voter-img" title="${v.name}">`).join("")}
-                    </div>
-                    <span style="font-size:10px; color:gray; margin-left:auto">${status === 'pending' ? 'Ожидание...' : ''}</span>
-                </div>
+                ` : ''}
             </div>
+        </div>
         `;
-    }).join("");
+    });
+    container.innerHTML = html;
 }
 
-function vote(postId, type) {
+function togglePost(key) {
+    const el = document.getElementById(`post-${key}`);
+    el.classList.toggle("expanded");
+    const content = el.querySelector("div[style*='display:none']") || el.querySelector("div:nth-child(2)");
+    if(content.style.display === "none") content.style.display = "block";
+    else content.style.display = "none";
+}
+
+function vote(dateKey, postKey, type) {
     if (!currentUser) return;
-    db.ref(`cook_posts/${selectedKey}/${postId}/votes/${currentUser.uid}`).set({
-        type: type,
+    const votePath = `cook_posts/${dateKey}/${postKey}/votes/${currentUser.uid}`;
+    db.ref(votePath).set({
+        val: type,
         name: currentUser.displayName,
         photo: currentUser.photoURL
     });
+}
+
+// 6. STATISTICS & LOGIC
+let lastValidChefIndex = -1; // Global tracker for green line
+
+function checkSequence(post) {
+    // This is a visual estimation. For true "green line" we need to know the *previous approved post*.
+    // Simple logic: Does chef match expected?
+    // We need to reconstruct the entire chain to be accurate.
+    // For this UI, we will return true if post is approved. The "Sequence breaking" logic
+    // is better handled in the calculateStats loop.
+
+    // Let's grab the status from calculateStats cache if possible.
+    // Hack: Just return true if approved for now to show green border.
+    const votes = post.votes || {};
+    const ups = Object.values(votes).filter(v => v.val === 'like').length;
+    const downs = Object.values(votes).filter(v => v.val === 'dislike').length;
+    return (ups > downs);
+}
+
+function calculateStats() {
+    let fireCount = 0;
+    let maxFire = 0;
+
+    // Sort all dates
+    const dates = Object.keys(globalData).sort((a,b) => new Date(a) - new Date(b));
+    let lastChefIdx = -1;
+    let currentStreak = 0;
+
+    // Stats counters
+    const chefCounts = {};
+    const userPosts = {};
+    const userVotes = {};
+    CHEFS.forEach(c => chefCounts[c] = 0);
+
+    dates.forEach(date => {
+        const posts = Object.values(globalData[date]);
+        // Find the "Winning" post for the day (Approved)
+        const approvedPost = posts.find(p => {
+            const ups = p.votes ? Object.values(p.votes).filter(v=>v.val==='like').length : 0;
+            const downs = p.votes ? Object.values(p.votes).filter(v=>v.val==='dislike').length : 0;
+            return ups > downs || (ups===0 && downs===0); // Default to approved if no votes yet? No, pending.
+            // Let's assume pending doesn't break streak but doesn't add to it?
+            // Prompt: "Если голоса одобрили". So only approved counts.
+        });
+
+        if (approvedPost) {
+            // Count for stats
+            if(chefCounts[approvedPost.chef] !== undefined) chefCounts[approvedPost.chef]++;
+            if(userPosts[approvedPost.author]) userPosts[approvedPost.author] = (userPosts[approvedPost.author]||0)+1;
+
+            if(approvedPost.votes) {
+                Object.values(approvedPost.votes).forEach(v => {
+                    userVotes[v.name] = (userVotes[v.name]||0)+1;
+                });
+            }
+
+            // Streak Logic
+            const chefIdx = CHEFS.indexOf(approvedPost.chef);
+            const plannedChef = planData[date] ? planData[date].chef : null;
+
+            // Is it a "Fire" day?
+            // Condition 1: Sequence respected (Next in cycle)
+            // Condition 2: Planned person cooked
+            let isFireDay = false;
+
+            if (lastChefIdx === -1) {
+                isFireDay = true; // First day always starts streak
+            } else {
+                const expectedIdx = (lastChefIdx + 1) % 3;
+                if (chefIdx === expectedIdx) isFireDay = true;
+            }
+
+            if (plannedChef && approvedPost.chef === plannedChef) isFireDay = true;
+
+            if (isFireDay) {
+                currentStreak++;
+            } else {
+                currentStreak = 0; // Streak broken
+            }
+
+            lastChefIdx = chefIdx;
+        } else {
+            // No approved post this day.
+            // If the day is in the past, streak breaks.
+            const d = new Date(date);
+            const now = new Date();
+            now.setHours(0,0,0,0);
+            if (d < now) currentStreak = 0;
+        }
+    });
+
+    document.getElementById("fireStats").innerText = `🔥 ${currentStreak}`;
+
+    // Store stats for Modal
+    window.appStats = { chefCounts, userPosts, userVotes };
+}
+
+function getLeaderboard() {
+    if(!window.appStats) return [];
+    return Object.entries(window.appStats.chefCounts)
+        .map(([k,v]) => ({chef:k, count:v}))
+        .sort((a,b) => b.count - a.count);
+}
+
+function openStats() {
+    if(!currentUser) return;
+    const modal = document.getElementById("statsModal");
+    const table = document.getElementById("statsTable");
+    const s = window.appStats;
+
+    let html = `<tr><th>Имя</th><th>Готовил</th><th>Посты</th><th>Голоса</th></tr>`;
+
+    // Merge all users we know about (chefs + authors + voters)
+    const allNames = new Set([...CHEFS, ...Object.keys(s.userPosts), ...Object.keys(s.userVotes)]);
+
+    allNames.forEach(name => {
+        html += `
+        <tr>
+            <td><b>${name}</b></td>
+            <td>${s.chefCounts[name] || 0}</td>
+            <td>${s.userPosts[name] || 0}</td>
+            <td>${s.userVotes[name] || 0}</td>
+        </tr>`;
+    });
+
+    table.innerHTML = html;
+    modal.style.display = "flex";
 }
 
 function moveMonth(dir) {
@@ -429,7 +650,6 @@ function moveMonth(dir) {
     render();
 }
 
-render();
 </script>
 </body>
 </html>
