@@ -387,7 +387,7 @@ function render() {
     for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement("div"));
 
     for(let d=1; d<=daysInMonth; d++) {
-        const key = `${year}-${month+1}-${d}`;
+        const key = formatDate(new Date(year, month, d));
         const dayEl = document.createElement("div");
         const hasPlan = planData[key];
         const isFire = fireDaysMap[key];
@@ -425,7 +425,10 @@ function render() {
 }
 
 function formatDate(date) {
-    return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0'); // +1 because getMonth() is 0-based
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 }
 
 function openDay(key) {
