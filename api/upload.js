@@ -17,20 +17,21 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ── 1. Upload to Cloudinary ──────────────────
+        // ── 1. Upload to Cloudinary via FormData ─────
         const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-        const cloudRes = await fetch(cloudinaryUrl, {
+        const formData = new FormData();
+        formData.append("file",          imageBase64);
+        formData.append("upload_preset", process.env.CLOUDINARY_UPLOAD_PRESET);
+        formData.append("folder",        "kyharnya");
+
+        const cloudRes  = await fetch(cloudinaryUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                file:         imageBase64,
-                upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
-                folder:       "kyharnya",
-            }),
+            body:   formData,
         });
 
         const cloudData = await cloudRes.json();
+        console.log("Cloudinary response:", JSON.stringify(cloudData));
 
         if (!cloudData.secure_url) {
             console.error("Cloudinary error:", cloudData);
@@ -50,8 +51,8 @@ export default async function handler(req, res) {
             votes:    {},
         };
 
-        const postRef  = await db.ref(`cook_posts/${dateKey}`).push(postData);
-        const postKey  = postRef.key;
+        const postRef = await db.ref(`cook_posts/${dateKey}`).push(postData);
+        const postKey = postRef.key;
 
         // ── 3. Send to all registered chefs in Telegram ──
         const mappingSnap = await db.ref("users_mapping").once("value");
@@ -65,7 +66,6 @@ export default async function handler(req, res) {
         for (const [uid, user] of Object.entries(mapping)) {
             if (!user.chatId) continue;
 
-            // Author sees the post but can't vote — send without buttons
             const extra = uid === authorId
             ? {}
             : { reply_markup: keyboard };
@@ -77,7 +77,6 @@ export default async function handler(req, res) {
             }
         }
 
-        // Save TG message IDs so we can edit them later when voting completes
         if (Object.keys(tgMessages).length > 0) {
             await db.ref(`tg_messages/${dateKey}/${postKey}`).set(tgMessages);
         }
