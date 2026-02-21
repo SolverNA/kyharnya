@@ -4,13 +4,13 @@
 
 /** @type {import('firebase/app').FirebaseOptions} */
 const FIREBASE_CONFIG = {
-    apiKey:            "AIzaSyA123c63SiYKZ6gUutup51cUEFk2eW-hY8",
-    authDomain:        "egfesf.firebaseapp.com",
-    projectId:         "egfesf",
-    storageBucket:     "egfesf.firebasestorage.app",
-    messagingSenderId: "374992022938",
-    appId:             "1:374992022938:web:67916c8442861733eb9e23",
-    databaseURL:       "https://egfesf-default-rtdb.europe-west1.firebasedatabase.app",
+    apiKey:            "AIzaSyAPISpt4e1bj3ZYSFEFC3bXyHd_er1c9wY",
+    authDomain:        "kyharnya.firebaseapp.com",
+    databaseURL:       "https://kyharnya-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "kyharnya",
+    storageBucket:     "kyharnya.firebasestorage.app",
+    messagingSenderId: "1063310079727",
+    appId:             "1:1063310079727:web:dccd2f85c11979da4b0d1a",
 };
 
 /** List of all possible chef names (roles). */
@@ -21,3 +21,6 @@ const VOTE_THRESHOLD = 2;
 
 /** How many days ahead planning is allowed. */
 const PLAN_AHEAD_DAYS = 7;
+
+/** Reminder notification time (daily cron) */
+const REMINDER_HOUR = 8;
