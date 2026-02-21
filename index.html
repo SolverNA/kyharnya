@@ -5,162 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Кухарня</title>
 
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- ── Styles ─────────────────────────────── -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- ── Firebase SDK ───────────────────────── -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
-    <style>
-        :root {
-            --bg: #f1f5f9; --card: #ffffff; --primary: #4f46e5;
-            --danger: #ef4444; --success: #10b981; --warning: #f59e0b; --text: #0f172a;
-            --gray: #94a3b8;
-        }
-        body {
-            font-family: 'Inter', -apple-system, sans-serif; background: var(--bg);
-            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; color: var(--text);
-        }
-
-        /* HEADER & AUTH */
-        .auth-header {
-            width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; background: white; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .fire-stats {
-            text-align: center; font-weight: 800; font-size: 18px; color: var(--warning);
-            background: #fffbeb; padding: 8px 16px; border-radius: 20px; border: 1px solid #fcd34d;
-        }
-        .user-pill { cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .user-pill img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-        .logout-btn-main {
-            background: var(--danger); color: white; border: none; padding: 6px 12px;
-            border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 4px;
-        }
-
-        /* CALENDAR */
-        .container { width: 100%; max-width: 600px; }
-        .month-nav {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px;
-        }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .weekday { text-align: center; font-size: 12px; font-weight: 700; color: #64748b; }
-        .day {
-            background: var(--card); aspect-ratio: 1/1; border-radius: 12px;
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-            cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-weight: 500; position: relative;
-            padding-top: 4px; overflow: hidden;
-        }
-        .day.today { border-color: var(--primary); background: #eef2ff; }
-        .day.has-data { background: #dcfce7; border-color: var(--success); }
-        .day.planned { border-style: dashed; border-color: var(--gray); }
-        .day.is-fire { background: #fff7ed; border-color: var(--warning); box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
-
-        .day-label { font-size: 14px; z-index: 2; }
-
-        .plan-name {
-            font-size: 9px; text-transform: uppercase; color: var(--primary);
-            font-weight: 800; text-align: center; margin-top: 2px; line-height: 1; word-break: break-all;
-        }
-        .fire-icon-day { font-size: 14px; margin-top: auto; margin-bottom: 2px; }
-
-        /* DAY VIEW */
-        #dayView {
-            margin-top: 20px; background: white; padding: 20px;
-            border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-        }
-        .leaderboard-day {
-            display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;
-            background: #f8fafc; padding: 10px; border-radius: 12px; font-size: 12px;
-        }
-
-        /* ACTIONS */
-        .btn-camera {
-            width: 100%; padding: 16px; background: var(--primary); color: white;
-            border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer;
-        }
-        .btn-plan {
-            width: 100%; padding: 12px; background: var(--gray); color: white;
-            border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px;
-        }
-
-        /* POST STYLES */
-        .post-item {
-            margin-top: 15px; border-radius: 16px; overflow: hidden;
-            border: 2px solid #e2e8f0; background: #f8fafc; position: relative;
-            transition: all 0.3s ease;
-        }
-        .post-item img { width: 100%; display: block; }
-
-        /* STYLES FOR STATUS */
-        .post-green-seq { border-color: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-        .post-pending { border-color: #cbd5e1; }
-        .post-rejected {
-            border-color: var(--danger); background: #fef2f2; height: 60px; overflow: hidden;
-        }
-        .post-rejected.expanded { height: auto; }
-        .post-rejected .post-header { display: flex; justify-content: space-between; padding: 10px; align-items: center; cursor: pointer;}
-
-        .status-badge {
-            position: absolute; top: 10px; right: 10px; padding: 4px 8px;
-            border-radius: 8px; font-size: 10px; font-weight: bold; text-transform: uppercase;
-            background: rgba(0,0,0,0.7); color: white;
-        }
-
-        /* VOTING UI */
-        .vote-actions { padding: 10px; display: flex; gap: 10px; justify-content: space-between; background: #fff; }
-        .vote-btn {
-            flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center; font-size: 12px;
-            transition: 0.2s;
-        }
-        .vote-btn:hover { background: #f8fafc; transform: scale(1.02); }
-        .vote-btn:active { transform: scale(0.98); }
-
-        .vote-btn.approve { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
-        .vote-btn.reject { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
-
-        .voter-avatars { display: flex; margin-top: 4px; justify-content: center; }
-        .voter-avatars img { width: 20px; height: 20px; border-radius: 50%; margin: 0 2px; border: 1px solid white; }
-
-        /* CAMERA & MODALS */
-        #cameraOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; display: none; flex-direction: column; z-index: 999;
-        }
-        video { width: 100%; height: 75%; object-fit: cover; }
-        .shutter { width: 72px; height: 72px; border-radius: 50%; background: white; border: 6px solid #333; cursor: pointer; }
-
-        /* STATS & AUTH MODAL */
-        #statsModal, #authModal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000;
-        }
-        .modal-content {
-            background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center;
-        }
-        .role-btn {
-            display: block; width: 100%; padding: 15px; margin: 10px 0;
-            background: var(--primary); color: white; border: none; border-radius: 12px;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-        }
-        .role-btn:disabled { background: var(--gray); cursor: not-allowed; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
-        th { color: #64748b; }
-
-    </style>
+    <!-- ── Google Identity Services ──────────── -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-<div class="auth-header">
+<!-- ================================================
+     HEADER
+     ================================================ -->
+<header class="auth-header">
+    <!-- Streak counter -->
     <div id="fireStats" class="fire-stats">🔥 0</div>
 
+    <!-- Logged-in state: avatar + name -->
     <div id="userProfile" class="user-pill" onclick="openStats()">
         <b>Загрузка...</b>
     </div>
 
+    <!-- Google Sign-In button (shown when logged out) -->
     <div id="loginUI" style="display:none;">
         <div id="g_id_onload"
              data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
@@ -170,55 +40,92 @@
         <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
     </div>
 
+    <!-- Logout button (shown when logged in) -->
     <div id="logoutUI" style="display:none;">
         <button class="logout-btn-main" onclick="auth.signOut()">Выйти</button>
     </div>
-</div>
+</header>
 
-<div class="container">
-    <div class="month-nav">
+
+<!-- ================================================
+     CALENDAR
+     ================================================ -->
+<main class="container">
+    <nav class="month-nav">
         <button onclick="moveMonth(-1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❮</button>
         <b id="monthDisplay"></b>
-        <button onclick="moveMonth(1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❯</button>
-    </div>
+        <button onclick="moveMonth(1)"  style="border:none; background:none; font-size:20px; cursor:pointer;">❯</button>
+    </nav>
+
     <div class="calendar-grid" id="calendar"></div>
 
-    <div id="dayView" hidden>
+
+    <!-- ============================================
+         DAY VIEW PANEL
+         ============================================ -->
+    <section id="dayView" hidden>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
-            <button onclick="document.getElementById('dayView').hidden=true" style="border:none; background:#eee; padding:5px 10px; border-radius:8px;">✕</button>
+            <button onclick="document.getElementById('dayView').hidden=true"
+                    style="border:none; background:#eee; padding:5px 10px; border-radius:8px;">✕</button>
         </div>
 
+        <!-- Mini leaderboard -->
         <div id="dayLeaderboard" class="leaderboard-day"></div>
 
+        <!-- Camera / Plan / Read-only action -->
         <div id="actionContainer"></div>
 
+        <!-- Upload form (shown after photo capture) -->
         <div id="uploadForm" style="display:none; margin-top:15px;">
             <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ СЕГОДНЯ?</label>
-            <select id="chefSelect" style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
-            <button id="saveBtn" onclick="finalizePost()" style="width:100%; padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:600;">Опубликовать</button>
+            <select id="chefSelect"
+                    style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
+            <button id="saveBtn" onclick="finalizePost()"
+                    style="width:100%; padding:14px; background:var(--success); color:white;
+                           border:none; border-radius:10px; font-weight:600;">
+                Опубликовать
+            </button>
         </div>
 
+        <!-- Plan form (shown for future dates) -->
         <div id="planForm" style="display:none; margin-top:15px;">
-             <label style="font-size:12px; color:#64748b;">НАЗНАЧИТЬ НА ЭТОТ ДЕНЬ:</label>
-             <select id="planChefSelect" style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
-             <button onclick="savePlan()" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:600;">Сохранить план</button>
+            <label style="font-size:12px; color:#64748b;">НАЗНАЧИТЬ НА ЭТОТ ДЕНЬ:</label>
+            <select id="planChefSelect"
+                    style="width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #ddd;"></select>
+            <button onclick="savePlan()"
+                    style="width:100%; padding:14px; background:var(--primary); color:white;
+                           border:none; border-radius:10px; font-weight:600;">
+                Сохранить план
+            </button>
         </div>
 
+        <!-- Post feed -->
         <div id="postHistory"></div>
-    </div>
-</div>
+    </section>
+</main>
 
+
+<!-- ================================================
+     CAMERA OVERLAY
+     ================================================ -->
 <div id="cameraOverlay">
     <video id="webcam" autoplay playsinline></video>
-    <div style="height:25%; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:20px;">
+    <div style="height:25%; display:flex; flex-direction:column;
+                justify-content:center; align-items:center; gap:20px;">
         <div class="shutter" onclick="capturePhoto()"></div>
-        <button onclick="closeCamera()" style="background:none; border:none; color:white; cursor:pointer;">Отмена</button>
+        <button onclick="closeCamera()"
+                style="background:none; border:none; color:white; cursor:pointer;">Отмена</button>
     </div>
 </div>
 
+<!-- Hidden canvas used for photo capture -->
 <canvas id="photoCanvas" style="display:none;"></canvas>
 
+
+<!-- ================================================
+     MODAL — Role selection (new users)
+     ================================================ -->
 <div id="authModal">
     <div class="modal-content">
         <h3>Добро пожаловать!</h3>
@@ -227,576 +134,35 @@
     </div>
 </div>
 
+
+<!-- ================================================
+     MODAL — Statistics
+     ================================================ -->
 <div id="statsModal" onclick="if(event.target === this) this.style.display='none'">
     <div class="modal-content">
         <h3>📊 Статистика Кухарни</h3>
         <table id="statsTable"></table>
         <div style="text-align:center; margin-top:20px;">
-            <button onclick="document.getElementById('statsModal').style.display='none'" style="padding:10px 20px; border:none; background:#eee; border-radius:8px;">Закрыть</button>
+            <button onclick="document.getElementById('statsModal').style.display='none'"
+                    style="padding:10px 20px; border:none; background:#eee; border-radius:8px;">
+                Закрыть
+            </button>
         </div>
     </div>
 </div>
 
-<script>
-// --- КОНФИГУРАЦИЯ FIREBASE ---
-const firebaseConfig = {
-    apiKey: "AIzaSyA123c63SiYKZ6gUutup51cUEFk2eW-hY8",
-    authDomain: "egfesf.firebaseapp.com",
-    projectId: "egfesf",
-    storageBucket: "egfesf.firebasestorage.app",
-    messagingSenderId: "374992022938",
-    appId: "1:374992022938:web:67916c8442861733eb9e23",
-    databaseURL: "https://egfesf-default-rtdb.europe-west1.firebasedatabase.app"
-};
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
+<!-- ================================================
+     SCRIPTS  (order matters — config first, app last)
+     ================================================ -->
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="stats.js"></script>
+<script src="calendar.js"></script>
+<script src="dayView.js"></script>
+<script src="camera.js"></script>
+<script src="posts.js"></script>
+<script src="app.js"></script><!-- bootstrap: init Firebase, listeners, state -->
 
-const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
-let currentUser = null;
-let currentRole = null; // Привязанная роль (имя)
-let viewDate = new Date();
-let selectedKey = "";
-let tempImage = null;
-let globalData = {};
-let planData = {};
-let usersMapping = {};
-let fireDaysMap = {}; // Хранит информацию о днях с огоньками
-
-// 1. AUTH LISTENER & BINDING
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        currentUser = user;
-        // Check role binding
-        db.ref("users_mapping").once("value", snap => {
-            usersMapping = snap.val() || {};
-            if (usersMapping[user.uid]) {
-                // User already bound
-                currentRole = usersMapping[user.uid].name;
-                updateUserProfileUI(user, currentRole);
-            } else {
-                // New user - show modal
-                showAuthModal(user.uid);
-            }
-        });
-
-        document.getElementById("loginUI").style.display = "none";
-        document.getElementById("logoutUI").style.display = "block";
-    } else {
-        currentUser = null;
-        currentRole = null;
-        document.getElementById("userProfile").innerHTML = "<b>Вход не выполнен</b>";
-        document.getElementById("loginUI").style.display = "block";
-        document.getElementById("logoutUI").style.display = "none";
-        document.getElementById("authModal").style.display = "none";
-    }
-    render();
-});
-
-function updateUserProfileUI(user, role) {
-    document.getElementById("userProfile").innerHTML = `
-        <img src="${user.photoURL}">
-        <div>
-            <div style="font-size:13px; font-weight:bold;">${role}</div>
-            <div style="font-size:10px; color:var(--gray);">Статистика</div>
-        </div>
-    `;
-    document.getElementById("authModal").style.display = "none";
-}
-
-function showAuthModal(uid) {
-    const modal = document.getElementById("authModal");
-    const container = document.getElementById("roleButtons");
-    modal.style.display = "flex";
-
-    // Find taken roles
-    const takenRoles = Object.values(usersMapping).map(u => u.name);
-
-    let html = "";
-    let freeSlots = 0;
-
-    CHEFS.forEach(chef => {
-        if (takenRoles.includes(chef)) {
-            html += `<button class="role-btn" disabled>${chef} (Занято)</button>`;
-        } else {
-            html += `<button class="role-btn" onclick="bindRole('${uid}', '${chef}')">${chef}</button>`;
-            freeSlots++;
-        }
-    });
-
-    if (freeSlots === 0) {
-        html = "<div style='color:red; font-weight:bold;'>Нет свободных мест. Доступ запрещен.</div>";
-        setTimeout(() => auth.signOut(), 3000);
-    }
-
-    container.innerHTML = html;
-}
-
-function bindRole(uid, name) {
-    db.ref("users_mapping/" + uid).set({ name: name, email: currentUser.email }).then(() => {
-        currentRole = name;
-        usersMapping[uid] = { name: name };
-        updateUserProfileUI(currentUser, name);
-    });
-}
-
-function onGoogleSignIn(response) {
-    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-    auth.signInWithCredential(credential).catch(e => alert("Ошибка авторизации: " + e.message));
-}
-
-// 2. DATA LISTENER
-db.ref("/").on("value", (snapshot) => {
-    const val = snapshot.val() || {};
-    globalData = val.cook_posts || {};
-    planData = val.planning || {};
-    usersMapping = val.users_mapping || {};
-
-    // If user is logged in, re-check role incase changed externally
-    if(currentUser && usersMapping[currentUser.uid]) {
-        currentRole = usersMapping[currentUser.uid].name;
-        updateUserProfileUI(currentUser, currentRole);
-    }
-
-    render();
-    if (!document.getElementById("dayView").hidden) updateHistory();
-});
-
-// 3. RENDER LOGIC
-function render() {
-    calculateStats(); // Calculate streaks and stats first
-
-    const grid = document.getElementById("calendar");
-    grid.innerHTML = "";
-
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
-    const now = new Date();
-    const todayKey = formatDate(now);
-
-    document.getElementById("monthDisplay").innerText = new Intl.DateTimeFormat('ru-RU', {month:'long', year:'numeric'}).format(viewDate);
-
-    ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => {
-        const h = document.createElement("div"); h.className="weekday"; h.innerText=d; grid.appendChild(h);
-    });
-
-    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
-    const daysInMonth = new Date(year, month+1, 0).getDate();
-
-    for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement("div"));
-
-    for(let d=1; d<=daysInMonth; d++) {
-        const key = formatDate(new Date(year, month, d));
-        const dayEl = document.createElement("div");
-        const hasPlan = planData[key];
-        const isFire = fireDaysMap[key];
-        const hasData = globalData[key]; // Есть посты (любые)
-
-        // Find if any post is approved in that day
-        let approvedChef = null;
-        if(globalData[key]) {
-            Object.values(globalData[key]).forEach(p => {
-                if(p.status === 'approved') approvedChef = p.chef;
-            });
-        }
-
-        let classes = `day ${key === todayKey ? 'today' : ''} ${approvedChef ? 'has-data' : ''} ${hasPlan ? 'planned' : ''} ${isFire ? 'is-fire' : ''}`;
-
-        dayEl.className = classes;
-        let content = `<span class="day-label">${d}</span>`;
-
-        if (hasPlan && !approvedChef) {
-            content += `<div class="plan-name">${hasPlan.chef}</div>`;
-        }
-
-        if (approvedChef) {
-             content += `<div class="plan-name" style="color:#065f46">${approvedChef}</div>`;
-        }
-
-        if (isFire) {
-            content += `<div class="fire-icon-day">🔥</div>`;
-        }
-
-        dayEl.innerHTML = content;
-        dayEl.onclick = () => openDay(key);
-        grid.appendChild(dayEl);
-    }
-}
-
-function formatDate(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0'); // +1 because getMonth() is 0-based
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-
-function openDay(key) {
-    selectedKey = key;
-    const todayKey = formatDate(new Date());
-
-    document.getElementById("dayView").hidden = false;
-    document.getElementById("selectedDateTitle").innerText = key === todayKey ? "Сегодня" : key;
-    document.getElementById("uploadForm").style.display = "none";
-    document.getElementById("planForm").style.display = "none";
-
-    // Leaderboard logic for day view
-    const stats = getLeaderboard();
-    document.getElementById("dayLeaderboard").innerHTML = stats.map((s, i) =>
-        `<span>${["🥇","🥈","🥉"][i]||""} <b>${s.chef}</b>: ${s.count}</span>`
-    ).join(" | ");
-
-    const actions = document.getElementById("actionContainer");
-
-    // Logic for Actions based on Date
-    const selDate = new Date(key);
-    const todayDate = new Date(todayKey);
-    const diffTime = selDate - todayDate;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (!currentUser) {
-        actions.innerHTML = `<div style="background:#fef2f2; color:var(--danger); padding:12px; border-radius:12px; text-align:center;">Нужно войти</div>`;
-    } else if (key === todayKey) {
-        // Проверка: Если уже есть approved пост, кнопку скрываем или меняем
-        const posts = globalData[key] || {};
-        const hasApproved = Object.values(posts).some(p => p.status === 'approved');
-
-        if (!hasApproved) {
-            actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
-        } else {
-             actions.innerHTML = `<div style="text-align:center; color:var(--success); font-weight:bold; padding:10px;">✅ Сегодня уже готовили</div>`;
-        }
-
-        // Pre-select planned chef
-        const select = document.getElementById("chefSelect");
-        select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
-        // Select current user role by default if they are a chef
-        if (currentRole && CHEFS.includes(currentRole)) select.value = currentRole;
-        if(planData[key]) select.value = planData[key].chef;
-
-    } else if (diffDays > 0 && diffDays <= 7) {
-        // Планирование на 7 дней вперед
-        actions.innerHTML = `<button class="btn-plan" onclick="showPlanForm()">📅 ЗАПЛАНИРОВАТЬ</button>`;
-        if(planData[key]) actions.innerHTML += `<div style="text-align:center; margin-top:5px; font-size:12px;">План: <b>${planData[key].chef}</b></div>`;
-    } else {
-        actions.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px;">Только просмотр</div>`;
-    }
-
-    updateHistory();
-}
-
-function showPlanForm() {
-    document.getElementById("planForm").style.display = "block";
-    const select = document.getElementById("planChefSelect");
-    select.innerHTML = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
-    select.innerHTML += `<option value="">-- Сбросить --</option>`;
-}
-
-function savePlan() {
-    const chef = document.getElementById("planChefSelect").value;
-    if(chef) {
-        db.ref("planning/" + selectedKey).set({ chef });
-    } else {
-        db.ref("planning/" + selectedKey).remove();
-    }
-    document.getElementById("planForm").style.display = "none";
-    // Slight delay to allow DB update to reflect in UI logic
-    setTimeout(() => openDay(selectedKey), 200);
-}
-
-// 4. CAMERA & POSTING
-async function openCamera() {
-    const overlay = document.getElementById("cameraOverlay");
-    const video = document.getElementById("webcam");
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-        video.srcObject = stream;
-        overlay.style.display = "flex";
-    } catch (e) { alert("Доступ к камере отклонен."); }
-}
-
-function capturePhoto() {
-    const video = document.getElementById("webcam");
-    const canvas = document.getElementById("photoCanvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    tempImage = canvas.toDataURL("image/jpeg", 0.4);
-    closeCamera();
-    document.getElementById("uploadForm").style.display = "block";
-}
-
-function closeCamera() {
-    const video = document.getElementById("webcam");
-    if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-    document.getElementById("cameraOverlay").style.display = "none";
-}
-
-function finalizePost() {
-    if (!currentUser) return alert("Войдите в аккаунт!");
-    const btn = document.getElementById("saveBtn");
-    btn.disabled = true; btn.innerText = "Загрузка...";
-
-    const postData = {
-        img: tempImage,
-        chef: document.getElementById("chefSelect").value,
-        author: currentUser.displayName || currentRole,
-        authorId: currentUser.uid,
-        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        status: 'pending',
-        votes: {}
-    };
-
-    db.ref("cook_posts/" + selectedKey).push(postData).then(() => {
-        btn.disabled = false; btn.innerText = "Опубликовать";
-        document.getElementById("uploadForm").style.display = "none";
-    }).catch(e => {
-        alert("Ошибка: " + e.message);
-        btn.disabled = false;
-    });
-}
-
-// 5. VOTING & HISTORY
-function updateHistory() {
-    const postsObj = globalData[selectedKey] || {};
-    const posts = Object.entries(postsObj).map(([k, v]) => ({...v, key: k})).reverse();
-    const container = document.getElementById("postHistory");
-
-    let html = "";
-
-    posts.forEach(p => {
-        const votes = p.votes || {};
-        const ups = Object.values(votes).filter(v => v.val === 'like').length;
-        const downs = Object.values(votes).filter(v => v.val === 'dislike').length;
-
-        // Определяем статус визуально (хотя в БД он уже должен быть обновлен)
-        let status = p.status || 'pending';
-
-        const isCollapsed = status === 'rejected';
-        const isAuthor = currentUser && p.authorId === currentUser.uid;
-
-        // Текст статуса
-        let statusText = 'На голосовании';
-        let statusColor = '#94a3b8';
-
-        if (status === 'approved') { statusText = 'ОДОБРЕН'; statusColor = '#10b981'; }
-        if (status === 'rejected') { statusText = 'ОТКЛОНЕН'; statusColor = '#ef4444'; }
-
-        html += `
-        <div class="post-item ${status === 'approved' ? 'post-green-seq' : ''} ${status === 'pending' ? 'post-pending' : ''} ${status === 'rejected' ? 'post-rejected' : ''}" id="post-${p.key}">
-            ${status === 'rejected' ? `<div class="post-header" onclick="togglePost('${p.key}')"><span>🚫 Отклонено (${p.chef})</span> <span>▼</span></div>` : ''}
-
-            <div style="${isCollapsed ? 'display:none' : ''}">
-                <div style="position:relative;">
-                    <img src="${p.img}">
-                    <div class="status-badge" style="background:${statusColor}">${statusText}</div>
-                </div>
-
-                <div style="padding:12px; font-size:14px;">
-                    <b>${p.chef}</b> готовил(а)<br>
-                    <span style="font-size:11px; color:#64748b;">👤 ${p.author} • ⏰ ${p.time}</span>
-                </div>
-
-                ${(status === 'pending' && currentUser && !isAuthor) ? `
-                <div class="vote-actions">
-                    <div class="vote-btn approve" onclick="vote('${selectedKey}', '${p.key}', 'like')">
-                        👍 Одобрить (${ups})
-                        <div class="voter-avatars">
-                            ${Object.values(votes).filter(v=>v.val==='like').map(v=>`<img src="${v.photo}">`).join('')}
-                        </div>
-                    </div>
-                    <div class="vote-btn reject" onclick="vote('${selectedKey}', '${p.key}', 'dislike')">
-                        👎 Отказать (${downs})
-                        <div class="voter-avatars">
-                            ${Object.values(votes).filter(v=>v.val==='dislike').map(v=>`<img src="${v.photo}">`).join('')}
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${(status !== 'pending' || isAuthor) ? `
-                <div style="padding:0 12px 12px; display:flex; gap:10px;">
-                    <div style="flex:1; text-align:center; font-size:12px; color:${status==='approved'?'var(--success)':'#64748b'};">👍 ${ups}</div>
-                    <div style="flex:1; text-align:center; font-size:12px; color:${status==='rejected'?'var(--danger)':'#64748b'};">👎 ${downs}</div>
-                </div>
-                ${isAuthor && status === 'pending' ? '<div style="text-align:center; font-size:10px; color:#94a3b8; padding-bottom:10px;">Вы не можете голосовать за свой пост</div>' : ''}
-                ` : ''}
-            </div>
-        </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-function togglePost(key) {
-    const el = document.getElementById(`post-${key}`);
-    el.classList.toggle("expanded");
-    const content = el.querySelector("div[style*='display:none']") || el.querySelector("div:nth-child(2)");
-    if(content.style.display === "none") content.style.display = "block";
-    else content.style.display = "none";
-}
-
-function vote(dateKey, postKey, type) {
-    if (!currentUser) return;
-
-    const postRef = db.ref(`cook_posts/${dateKey}/${postKey}`);
-
-    // Сначала читаем текущее состояние, чтобы проверить завершение
-    postRef.transaction((post) => {
-        if (!post) return post;
-        if (post.status !== 'pending') return; // Уже решено
-
-        if (!post.votes) post.votes = {};
-
-        // Добавляем голос
-        post.votes[currentUser.uid] = {
-            val: type,
-            name: currentRole || currentUser.displayName,
-            photo: currentUser.photoURL
-        };
-
-        // Считаем
-        const votesArr = Object.values(post.votes);
-        const likes = votesArr.filter(v => v.val === 'like').length;
-        const dislikes = votesArr.filter(v => v.val === 'dislike').length;
-
-        // Логика завершения: 2 голоса в одну сторону
-        if (likes >= 2) {
-            post.status = 'approved';
-        } else if (dislikes >= 2) {
-            post.status = 'rejected';
-        }
-
-        return post;
-    }, (error, committed, snapshot) => {
-        if(error) alert("Ошибка голосования");
-    });
-}
-
-// 6. STATISTICS & STREAK LOGIC
-function calculateStats() {
-    let currentStreak = 0;
-
-    // Счетчики поваров для баланса
-    const balanceCounts = {};
-    CHEFS.forEach(c => balanceCounts[c] = 0);
-
-    const statsCounts = {}; // Для модалки
-    CHEFS.forEach(c => statsCounts[c] = 0);
-
-    const userPosts = {};
-    const userVotes = {};
-
-    fireDaysMap = {}; // Сброс карты огоньков
-
-    // Сортируем все даты (прошлые и будущие планы)
-    // Нам важна хронология. Объединяем ключи постов и планов.
-    const allDates = new Set([...Object.keys(globalData), ...Object.keys(planData)]);
-    const sortedDates = Array.from(allDates).sort((a,b) => new Date(a) - new Date(b));
-
-    sortedDates.forEach(date => {
-        // 1. Ищем approved пост
-        const posts = globalData[date] ? Object.values(globalData[date]) : [];
-        const approvedPost = posts.find(p => p.status === 'approved');
-
-        // Для статистики юзеров
-        posts.forEach(p => {
-             if(p.status === 'approved') {
-                 statsCounts[p.chef] = (statsCounts[p.chef]||0)+1;
-                 userPosts[p.author] = (userPosts[p.author]||0)+1;
-                 if(p.votes) Object.values(p.votes).forEach(v => userVotes[v.name] = (userVotes[v.name]||0)+1);
-             }
-        });
-
-        // ЛОГИКА ОГОНЬКА (СТРИК)
-        let isStreakSafe = true; // День не нарушает баланс
-        let contributesToStreak = false; // День добавляет огонек
-
-        // Если кто-то приготовил (approved)
-        if (approvedPost) {
-            balanceCounts[approvedPost.chef]++;
-            contributesToStreak = true;
-        }
-
-        // Проверка баланса: Никто не должен готовить больше других более чем на 1 раз
-        const counts = Object.values(balanceCounts);
-        const max = Math.max(...counts);
-        const min = Math.min(...counts);
-
-        if ((max - min) > 1) {
-            // Баланс нарушен!
-            currentStreak = 0;
-            isStreakSafe = false;
-        }
-
-        // Дополнительное условие: Если есть План и он выполнен
-        const plan = planData[date];
-        if (plan) {
-            if (approvedPost && approvedPost.chef === plan.chef) {
-                // План выполнен -> огонек (если баланс ок)
-                contributesToStreak = true;
-            } else if (approvedPost && approvedPost.chef !== plan.chef) {
-                 // Готовил не тот, кто должен -> сбиваем ли?
-                 // ТЗ: "если его не собют порядком". Порядок важнее. Если баланс ОК, то ок.
-            } else {
-                // План есть, но еще не готовили (будущее или пропущенный день)
-                // Огонек не ставим пока не приготовил.
-                contributesToStreak = false;
-            }
-        }
-
-        // Финальное решение по дню
-        if (isStreakSafe) {
-            if (contributesToStreak) {
-                fireDaysMap[date] = true;
-                currentStreak++;
-            }
-        } else {
-             // Если баланс нарушен, этот день точно не огонь, и стрик сброшен
-             fireDaysMap[date] = false;
-        }
-    });
-
-    document.getElementById("fireStats").innerText = `🔥 ${currentStreak}`;
-    window.appStats = { chefCounts: statsCounts, userPosts, userVotes };
-}
-
-function getLeaderboard() {
-    if(!window.appStats) return [];
-    return Object.entries(window.appStats.chefCounts)
-        .map(([k,v]) => ({chef:k, count:v}))
-        .sort((a,b) => b.count - a.count);
-}
-
-function openStats() {
-    if(!currentUser) return;
-    const modal = document.getElementById("statsModal");
-    const table = document.getElementById("statsTable");
-    const s = window.appStats;
-
-    let html = `<tr><th>Имя</th><th>Готовил</th><th>Посты</th><th>Голоса</th></tr>`;
-
-    const allNames = new Set([...CHEFS, ...Object.keys(s.userPosts), ...Object.keys(s.userVotes)]);
-
-    allNames.forEach(name => {
-        html += `
-        <tr>
-            <td><b>${name}</b></td>
-            <td>${s.chefCounts[name] || 0}</td>
-            <td>${s.userPosts[name] || 0}</td>
-            <td>${s.userVotes[name] || 0}</td>
-        </tr>`;
-    });
-
-    table.innerHTML = html;
-    modal.style.display = "flex";
-}
-
-function moveMonth(dir) {
-    viewDate.setMonth(viewDate.getMonth() + dir);
-    render();
-}
-
-</script>
 </body>
 </html>
