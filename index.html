@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Кухарня</title>
 
+    <!-- ── Telegram Mini App SDK ──────────────── -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <!-- ── Styles ─────────────────────────────── -->
     <link rel="stylesheet" href="style.css">
 
@@ -12,9 +15,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
-    <!-- ── Google Identity Services ──────────── -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -30,20 +30,9 @@
         <b>Загрузка...</b>
     </div>
 
-    <!-- Google Sign-In button (shown when logged out) -->
-    <div id="loginUI" style="display:none;">
-        <div id="g_id_onload"
-             data-client_id="374992022938-jb3jf62spn0njs1c1m63qi3591sqg4e6.apps.googleusercontent.com"
-             data-callback="onGoogleSignIn"
-             data-auto_prompt="false">
-        </div>
-        <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
-    </div>
-
-    <!-- Logout button (shown when logged in) -->
-    <div id="logoutUI" style="display:none;">
-        <button class="logout-btn-main" onclick="auth.signOut()">Выйти</button>
-    </div>
+    <!-- Kept for layout compatibility — hidden by default -->
+    <div id="loginUI"  style="display:none;"></div>
+    <div id="logoutUI" style="display:none;"></div>
 </header>
 
 
@@ -124,18 +113,6 @@
 
 
 <!-- ================================================
-     MODAL — Role selection (new users)
-     ================================================ -->
-<div id="authModal">
-    <div class="modal-content">
-        <h3>Добро пожаловать!</h3>
-        <p>Выберите, кто вы. Это действие нельзя отменить.</p>
-        <div id="roleButtons"></div>
-    </div>
-</div>
-
-
-<!-- ================================================
      MODAL — Statistics
      ================================================ -->
 <div id="statsModal" onclick="if(event.target === this) this.style.display='none'">
@@ -151,6 +128,13 @@
     </div>
 </div>
 
+<!-- authModal kept in DOM for compatibility but unused -->
+<div id="authModal" style="display:none;">
+    <div class="modal-content">
+        <div id="roleButtons"></div>
+    </div>
+</div>
+
 
 <!-- ================================================
      SCRIPTS  (order matters — config first, app last)
@@ -162,7 +146,13 @@
 <script src="dayView.js"></script>
 <script src="camera.js"></script>
 <script src="posts.js"></script>
-<script src="app.js"></script><!-- bootstrap: init Firebase, listeners, state -->
+<script src="app.js"></script>
+
+<!-- ── Vercel Speed Insights ─────────────── -->
+<script>
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 
 </body>
 </html>

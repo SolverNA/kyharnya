@@ -1,113 +1,117 @@
 // ===================================================
-//  auth.js — Authentication & role-binding logic
+//  auth.js — Authentication via Telegram Mini App
 // ===================================================
 
 /**
- * Called by Google Identity Services after a successful sign-in.
- * @param {{ credential: string }} response
- */
-function onGoogleSignIn(response) {
-    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-    auth.signInWithCredential(credential)
-        .catch(err => alert("Ошибка авторизации: " + err.message));
-}
-
-/**
- * Reacts to Firebase Auth state changes.
- * Sets global `currentUser` / `currentRole` and updates the header UI.
+ * Initializes auth from Telegram WebApp initData.
+ * If opened outside Telegram — shows a block screen.
  */
 function initAuthListener() {
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            currentUser = user;
+    const tg = window.Telegram?.WebApp;
 
-            db.ref("users_mapping").once("value", snap => {
-                usersMapping = snap.val() || {};
+    if (!tg || !tg.initData) {
+        _showNotTelegramScreen();
+        return;
+    }
 
-                if (usersMapping[user.uid]) {
-                    currentRole = usersMapping[user.uid].name;
-                    _showLoggedInUI(user, currentRole);
-                } else {
-                    showAuthModal(user.uid);
-                }
-            });
+    tg.ready();
+    tg.expand();
 
-            document.getElementById("loginUI").style.display  = "none";
-            document.getElementById("logoutUI").style.display = "block";
+    const user = tg.initDataUnsafe?.user;
+    if (!user) {
+        _showNotTelegramScreen();
+        return;
+    }
 
+    const userId = String(user.id);
+
+    // Check Firebase mapping
+    db.ref("users_mapping/" + userId).once("value", snap => {
+        if (snap.exists()) {
+            const data  = snap.val();
+            currentUser = { uid: userId, displayName: data.name, photoURL: "" };
+            currentRole = data.name;
+            _showLoggedInUI(user, data.name);
         } else {
-            currentUser = null;
-            currentRole = null;
-
-            document.getElementById("userProfile").innerHTML   = "<b>Вход не выполнен</b>";
-            document.getElementById("loginUI").style.display   = "block";
-            document.getElementById("logoutUI").style.display  = "none";
-            document.getElementById("authModal").style.display = "none";
+            // Not registered — show info screen (registration is via bot /start)
+            _showRegisterViaBotScreen(user);
         }
 
         render();
     });
 }
 
-/**
- * Renders the role-selection modal for a new (unbound) user.
- * @param {string} uid
- */
-function showAuthModal(uid) {
-    const modal     = document.getElementById("authModal");
-    const container = document.getElementById("roleButtons");
-    modal.style.display = "flex";
-
-    const takenRoles = Object.values(usersMapping).map(u => u.name);
-    let freeSlots = 0;
-    let html = "";
-
-    CHEFS.forEach(chef => {
-        if (takenRoles.includes(chef)) {
-            html += `<button class="role-btn" disabled>${chef} (Занято)</button>`;
-        } else {
-            html += `<button class="role-btn" onclick="bindRole('${uid}', '${chef}')">${chef}</button>`;
-            freeSlots++;
-        }
-    });
-
-    if (freeSlots === 0) {
-        html = "<div style='color:red; font-weight:bold;'>Нет свободных мест. Доступ запрещен.</div>";
-        setTimeout(() => auth.signOut(), 3000);
-    }
-
-    container.innerHTML = html;
-}
-
-/**
- * Saves the chosen role for a user in Firebase.
- * @param {string} uid
- * @param {string} name
- */
-function bindRole(uid, name) {
-    db.ref("users_mapping/" + uid)
-        .set({ name, email: currentUser.email })
-        .then(() => {
-            currentRole        = name;
-            usersMapping[uid]  = { name };
-            _showLoggedInUI(currentUser, name);
-        });
-}
-
 // ── Private helpers ──────────────────────────────────
 
-/**
- * Updates the header profile pill and hides the auth modal.
- * @param {firebase.User} user
- * @param {string} role
- */
-function _showLoggedInUI(user, role) {
+function _showLoggedInUI(tgUser, role) {
+    const photo = tgUser.photo_url || "";
+
     document.getElementById("userProfile").innerHTML = `
-        <img src="${user.photoURL}" alt="${role}">
-        <div>
-            <div style="font-size:13px; font-weight:bold;">${role}</div>
-            <div style="font-size:10px; color:var(--gray);">Статистика</div>
-        </div>
+    <img src="${photo || 'https://ui-avatars.com/api/?name=' + role + '&background=4f46e5&color=fff'}"
+    alt="${role}"
+    style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+    <div>
+    <div style="font-size:13px; font-weight:bold;">${role}</div>
+    <div style="font-size:10px; color:var(--gray);">Статистика</div>
+    </div>
     `;
+
+    document.getElementById("loginUI").style.display  = "none";
+    document.getElementById("logoutUI").style.display = "none";
     document.getElementById("authModal").style.display = "none";
+}
+
+function _showNotTelegramScreen() {
+    document.body.innerHTML = `
+    <div style="
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; height:100vh; padding:30px;
+    font-family:'Inter',-apple-system,sans-serif; text-align:center;
+    background:#f1f5f9; color:#0f172a;
+    ">
+    <div style="font-size:64px; margin-bottom:20px;">🍳</div>
+    <h2 style="margin:0 0 10px;">Кухарня</h2>
+    <p style="color:#64748b; margin:0 0 30px;">
+    Приложение доступно только через Telegram.
+    </p>
+    <a href="https://t.me/${getTgBotUsername()}"
+    style="
+    display:inline-block; padding:14px 28px;
+    background:#4f46e5; color:white; border-radius:12px;
+    text-decoration:none; font-weight:600; font-size:16px;
+    ">
+    Открыть в Telegram
+    </a>
+    </div>
+    `;
+}
+
+function _showRegisterViaBotScreen(tgUser) {
+    document.body.innerHTML = `
+    <div style="
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; height:100vh; padding:30px;
+    font-family:'Inter',-apple-system,sans-serif; text-align:center;
+    background:#f1f5f9; color:#0f172a;
+    ">
+    <div style="font-size:64px; margin-bottom:20px;">👋</div>
+    <h2 style="margin:0 0 10px;">Привет, ${tgUser.first_name}!</h2>
+    <p style="color:#64748b; margin:0 0 30px;">
+    Сначала зарегистрируйся в боте — напиши <b>/start</b> и выбери своё имя.
+    </p>
+    <a href="https://t.me/${getTgBotUsername()}"
+    style="
+    display:inline-block; padding:14px 28px;
+    background:#4f46e5; color:white; border-radius:12px;
+    text-decoration:none; font-weight:600; font-size:16px;
+    ">
+    Открыть бота
+    </a>
+    </div>
+    `;
+}
+
+function getTgBotUsername() {
+    // Replace with your actual bot username after creation
+    return "kyharnya_bot";
 }

@@ -1,10 +1,9 @@
 // ===================================================
-//  camera.js — Camera access, photo capture & post upload
+//  camera.js — Camera access, photo capture & upload
 // ===================================================
 
 /**
  * Requests camera access and shows the overlay.
- * Prefers the rear-facing camera on mobile devices.
  */
 async function openCamera() {
     const overlay = document.getElementById("cameraOverlay");
@@ -33,7 +32,8 @@ function capturePhoto() {
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
-    tempImage = canvas.toDataURL("image/jpeg", 0.4);
+    // Compress to JPEG — 0.5 quality is enough for a food photo
+    tempImage = canvas.toDataURL("image/jpeg", 0.5);
 
     closeCamera();
     document.getElementById("uploadForm").style.display = "block";
@@ -51,36 +51,49 @@ function closeCamera() {
 }
 
 /**
- * Reads the form values, builds a post object, and pushes it to Firebase.
- * Status starts as "pending" until the other chefs vote.
+ * Sends the photo + metadata to /api/upload which:
+ *  1. Uploads photo to Cloudinary
+ *  2. Saves post to Firebase
+ *  3. Sends Telegram notifications
  */
-function finalizePost() {
+async function finalizePost() {
     if (!currentUser) return alert("Войдите в аккаунт!");
+    if (!tempImage)   return alert("Сначала сделайте фото!");
 
     const btn = document.getElementById("saveBtn");
-    btn.disabled = true;
+    btn.disabled  = true;
     btn.innerText = "Загрузка...";
 
-    const postData = {
-        img:      tempImage,
-        chef:     document.getElementById("chefSelect").value,
-        author:   currentUser.displayName || currentRole,
-        authorId: currentUser.uid,
-        time:     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        status:   "pending",
-        votes:    {},
-    };
+    const chef   = document.getElementById("chefSelect").value;
+    const now    = new Date();
+    const time   = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    db.ref("cook_posts/" + selectedKey)
-        .push(postData)
-        .then(() => {
-            btn.disabled = false;
-            btn.innerText = "Опубликовать";
-            document.getElementById("uploadForm").style.display = "none";
-        })
-        .catch(err => {
-            alert("Ошибка: " + err.message);
-            btn.disabled = false;
-            btn.innerText = "Опубликовать";
+    try {
+        const res = await fetch("/api/upload", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({
+                imageBase64: tempImage,
+                chef,
+                author:   currentRole || currentUser.displayName,
+                authorId: currentUser.uid,
+                dateKey:  selectedKey,
+                time,
+            }),
         });
+
+        const data = await res.json();
+
+        if (!data.ok) throw new Error(data.error || "Upload failed");
+
+        btn.disabled  = false;
+        btn.innerText = "Опубликовать";
+        document.getElementById("uploadForm").style.display = "none";
+        tempImage = null;
+
+    } catch (err) {
+        alert("Ошибка: " + err.message);
+        btn.disabled  = false;
+        btn.innerText = "Опубликовать";
+    }
 }
