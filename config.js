@@ -1,16 +1,18 @@
 // ===================================================
-//  config.js — Firebase configuration & app constants
+//  config.js — App constants
+//  Firebase keys are injected by Vercel at build time
+//  via window.ENV (see index.html inline script)
 // ===================================================
 
-/** @type {import('firebase/app').FirebaseOptions} */
+/** Firebase config — values come from Vercel env vars injected into HTML */
 const FIREBASE_CONFIG = {
-    apiKey:            "AIzaSyAPISpt4e1bj3ZYSFEFC3bXyHd_er1c9wY",
-    authDomain:        "kyharnya.firebaseapp.com",
-    databaseURL:       "https://kyharnya-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId:         "kyharnya",
-    storageBucket:     "kyharnya.firebasestorage.app",
-    messagingSenderId: "1063310079727",
-    appId:             "1:1063310079727:web:dccd2f85c11979da4b0d1a",
+    apiKey:            window.ENV.FIREBASE_API_KEY,
+    authDomain:        window.ENV.FIREBASE_AUTH_DOMAIN,
+    databaseURL:       window.ENV.FIREBASE_DATABASE_URL,
+    projectId:         window.ENV.FIREBASE_PROJECT_ID,
+    storageBucket:     window.ENV.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: window.ENV.FIREBASE_MESSAGING_SENDER_ID,
+    appId:             window.ENV.FIREBASE_APP_ID,
 };
 
 /** List of all possible chef names (roles). */
@@ -21,6 +23,3 @@ const VOTE_THRESHOLD = 2;
 
 /** How many days ahead planning is allowed. */
 const PLAN_AHEAD_DAYS = 7;
-
-/** Reminder notification time (daily cron) */
-const REMINDER_HOUR = 8;
