@@ -1,11 +1,12 @@
 // ===================================================
 //  api/upload.js — Upload photo to Cloudinary,
 //                  save post to Firebase,
-//                  send notification to Telegram
+//                  send Telegram notifications
 // ===================================================
 
-const { db }             = require("../lib/firebase");
+const { db }                          = require("../lib/firebase");
 const { sendPhoto, buildVoteKeyboard } = require("../lib/telegram");
+const { MSG }                          = require("../messages");
 
 export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).end();
@@ -17,21 +18,16 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ── 1. Upload to Cloudinary via FormData ─────
+        // ── 1. Upload to Cloudinary ───────────────────
         const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`;
 
         const formData = new FormData();
-        formData.append("file",          imageBase64);
-        formData.append("upload_preset", process.env.CLOUDINARY_UPLOAD_PRESET);
-        formData.append("folder",        "kyharnya");
+        formData.append("file",           imageBase64);
+        formData.append("upload_preset",  process.env.CLOUDINARY_UPLOAD_PRESET);
+        formData.append("folder",         "kyharnya");
 
-        const cloudRes  = await fetch(cloudinaryUrl, {
-            method: "POST",
-            body:   formData,
-        });
-
+        const cloudRes  = await fetch(cloudinaryUrl, { method: "POST", body: formData });
         const cloudData = await cloudRes.json();
-        console.log("Cloudinary response:", JSON.stringify(cloudData));
 
         if (!cloudData.secure_url) {
             console.error("Cloudinary error:", cloudData);
@@ -40,35 +36,28 @@ export default async function handler(req, res) {
 
         const imageUrl = cloudData.secure_url;
 
-        // ── 2. Save post to Firebase ─────────────────
-        const postData = {
-            img:      imageUrl,
-            chef,
-            author,
-            authorId,
-            time,
-            status:   "pending",
-            votes:    {},
-        };
+        // ── 2. Save post to Firebase ──────────────────
+        const postData = { img: imageUrl, chef, author, authorId, time, status: "pending", votes: {} };
+        const postRef  = await db.ref(`cook_posts/${dateKey}`).push(postData);
+        const postKey  = postRef.key;
 
-        const postRef = await db.ref(`cook_posts/${dateKey}`).push(postData);
-        const postKey = postRef.key;
-
-        // ── 3. Send to all registered chefs in Telegram ──
+        // ── 3. Send Telegram notifications ───────────
         const mappingSnap = await db.ref("users_mapping").once("value");
         const mapping     = mappingSnap.val() || {};
-
-        const caption  = `🍽 <b>Новая готовка!</b>\n\n👨‍🍳 Готовил: <b>${chef}</b>\n📅 ${dateKey}\n⏰ ${time}\n\n<i>Проголосуй:</i>`;
-        const keyboard = buildVoteKeyboard(dateKey, postKey, 0, 0);
-
-        const tgMessages = {};
+        const keyboard    = buildVoteKeyboard(dateKey, postKey, 0, 0);
+        const tgMessages  = {};
 
         for (const [uid, user] of Object.entries(mapping)) {
             if (!user.chatId) continue;
 
-            const extra = uid === authorId
-            ? {}
-            : { reply_markup: keyboard };
+            const isAuthor = uid === authorId;
+
+            // Author gets a different caption and no vote buttons
+            const caption = isAuthor
+            ? MSG.newPostAuthor(chef, dateKey, time)
+            : MSG.newPostVoter(chef, dateKey, time);
+
+            const extra = isAuthor ? {} : { reply_markup: keyboard };
 
             const sentMsg = await sendPhoto(user.chatId, imageUrl, caption, extra);
 

@@ -6,10 +6,11 @@ const { db }                  = require("../lib/firebase");
 const {
     sendMessage,
     answerCallbackQuery,
-    editMessageReplyMarkup,
     editMessageCaption,
+    editMessageReplyMarkup,
     buildVoteKeyboard,
 } = require("../lib/telegram");
+const { MSG } = require("../messages");
 
 const CHEFS          = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
 const VOTE_THRESHOLD = 2;
@@ -53,12 +54,12 @@ async function handleMessage(message) {
         return;
     }
 
-    const mappingSnap = await db.ref("users_mapping").once("value");
-    const mapping     = mappingSnap.val() || {};
+    const mappingSnap  = await db.ref("users_mapping").once("value");
+    const mapping      = mappingSnap.val() || {};
     const isRegistered = Object.keys(mapping).some(uid => uid === userId);
 
     if (!isRegistered) {
-        await sendMessage(chatId, "⛔ Доступ запрещён. Бот только для поваров Кухарни.");
+        await sendMessage(chatId, MSG.notRegistered());
     }
 }
 
@@ -67,9 +68,7 @@ async function handleStart(chatId, userId) {
     const mapping     = mappingSnap.val() || {};
 
     if (mapping[userId]) {
-        await sendMessage(chatId,
-                          `👋 Привет, <b>${mapping[userId].name}</b>!\n\nТы уже зарегистрирован в Кухарне.`
-        );
+        await sendMessage(chatId, MSG.alreadyRegistered(mapping[userId].name));
         return;
     }
 
@@ -77,22 +76,19 @@ async function handleStart(chatId, userId) {
     const freeRoles  = CHEFS.filter(c => !takenRoles.includes(c));
 
     if (freeRoles.length === 0) {
-        await sendMessage(chatId, "⛔ Все места заняты. Доступ запрещён.");
+        await sendMessage(chatId, MSG.noSlots());
         return;
     }
 
     await db.ref(`waiting_registration/${userId}`).set(true);
 
-    const keyboard = {
-        keyboard:          freeRoles.map(role => [{ text: role }]),
-        resize_keyboard:   true,
-        one_time_keyboard: true,
-    };
-
-    await sendMessage(chatId,
-                      "👨‍🍳 Добро пожаловать в <b>Кухарню</b>!\n\nВыбери, кто ты — это действие нельзя отменить:",
-                      { reply_markup: keyboard }
-    );
+    await sendMessage(chatId, MSG.welcome(), {
+        reply_markup: {
+            keyboard:          freeRoles.map(role => [{ text: role }]),
+                      resize_keyboard:   true,
+                      one_time_keyboard: true,
+        },
+    });
 }
 
 async function handleRoleSelection(chatId, userId, chosenRole) {
@@ -101,7 +97,7 @@ async function handleRoleSelection(chatId, userId, chosenRole) {
 
     const takenRoles = Object.values(mapping).map(u => u.name);
     if (takenRoles.includes(chosenRole)) {
-        await sendMessage(chatId, `❌ Роль <b>${chosenRole}</b> уже занята. Выбери другую.`);
+        await sendMessage(chatId, MSG.roleTaken(chosenRole));
         return;
     }
 
@@ -113,10 +109,9 @@ async function handleRoleSelection(chatId, userId, chosenRole) {
 
     await db.ref(`waiting_registration/${userId}`).remove();
 
-    await sendMessage(chatId,
-                      `✅ Отлично! Ты зарегистрирован как <b>${chosenRole}</b>.\n\nТеперь ты будешь получать уведомления о готовке и голосованиях.`,
-                      { reply_markup: { remove_keyboard: true } }
-    );
+    await sendMessage(chatId, MSG.registered(chosenRole), {
+        reply_markup: { remove_keyboard: true },
+    });
 }
 
 async function handleCallbackQuery(query) {
@@ -143,12 +138,7 @@ async function handleCallbackQuery(query) {
         if (post.authorId === userId) return post;
 
         if (!post.votes) post.votes = {};
-
-        post.votes[userId] = {
-            val:   voteType,
-            name:  userRecord.name,
-            photo: "",
-        };
+        post.votes[userId] = { val: voteType, name: userRecord.name, photo: "" };
 
         const votes    = Object.values(post.votes);
         const likes    = votes.filter(v => v.val === "like").length;
@@ -161,10 +151,7 @@ async function handleCallbackQuery(query) {
     });
 
     const post = result.snapshot.val();
-    if (!post) {
-        await answerCallbackQuery(query.id, "Пост не найден");
-        return;
-    }
+    if (!post) { await answerCallbackQuery(query.id, "Пост не найден"); return; }
 
     if (post.authorId === userId) {
         await answerCallbackQuery(query.id, "❌ Нельзя голосовать за свой пост");
@@ -176,25 +163,25 @@ async function handleCallbackQuery(query) {
     const dislikes = votes.filter(v => v.val === "dislike").length;
 
     if (post.status !== "pending") {
-        await answerCallbackQuery(query.id,
-                                  post.status === "approved" ? "✅ Одобрено!" : "❌ Отклонено"
-        );
-        await updatePostMessages(dateKey, postKey, post, likes, dislikes);
+        await answerCallbackQuery(query.id, post.status === "approved" ? "✅ Одобрено!" : "❌ Отклонено");
+        await _finalizePostMessages(dateKey, postKey, post, likes, dislikes);
     } else {
-        await answerCallbackQuery(query.id,
-                                  voteType === "like" ? "👍 Проголосовал за" : "👎 Проголосовал против"
-        );
-        await refreshVoteButtons(dateKey, postKey, likes, dislikes);
+        await answerCallbackQuery(query.id, voteType === "like" ? "👍 Проголосовал за" : "👎 Проголосовал против");
+        await _refreshVoteButtons(dateKey, postKey, likes, dislikes);
     }
 }
 
-async function updatePostMessages(dateKey, postKey, post, likes, dislikes) {
+/**
+ * Updates all TG messages when voting is complete — sets final caption and removes buttons.
+ */
+async function _finalizePostMessages(dateKey, postKey, post, likes, dislikes) {
     const tgMsgSnap = await db.ref(`tg_messages/${dateKey}/${postKey}`).once("value");
     const tgMsgs    = tgMsgSnap.val();
     if (!tgMsgs) return;
 
-    const statusLine = post.status === "approved" ? "✅ <b>ОДОБРЕНО</b>" : "🚫 <b>ОТКЛОНЕНО</b>";
-    const caption = `${statusLine}\n\n👨‍🍳 Готовил: <b>${post.chef}</b>\n⏰ ${post.time}\n\n👍 ${likes}  👎 ${dislikes}`;
+    const caption = post.status === "approved"
+    ? MSG.approved(post.chef, post.time, likes, dislikes)
+    : MSG.rejected(post.chef, post.time, likes, dislikes);
 
     for (const [chatId, messageId] of Object.entries(tgMsgs)) {
         await editMessageCaption(chatId, messageId, caption, {
@@ -203,14 +190,16 @@ async function updatePostMessages(dateKey, postKey, post, likes, dislikes) {
     }
 }
 
-async function refreshVoteButtons(dateKey, postKey, likes, dislikes) {
+/**
+ * Updates only the vote count on buttons without touching the caption.
+ */
+async function _refreshVoteButtons(dateKey, postKey, likes, dislikes) {
     const tgMsgSnap = await db.ref(`tg_messages/${dateKey}/${postKey}`).once("value");
     const tgMsgs    = tgMsgSnap.val();
     if (!tgMsgs) return;
 
     const keyboard = buildVoteKeyboard(dateKey, postKey, likes, dislikes);
 
-    // Обновляем только кнопки, не трогая caption
     for (const [chatId, messageId] of Object.entries(tgMsgs)) {
         await editMessageReplyMarkup(chatId, messageId, keyboard).catch(() => {});
     }
