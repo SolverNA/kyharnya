@@ -14,7 +14,7 @@ function openDay(key) {
 
     panel.hidden = false;
     document.getElementById("selectedDateTitle").innerText =
-        key === todayKey ? "Сегодня" : key;
+    key === todayKey ? "Сегодня" : key;
     document.getElementById("uploadForm").style.display = "none";
     document.getElementById("planForm").style.display   = "none";
 
@@ -32,8 +32,8 @@ function showPlanForm() {
 
     form.style.display = "block";
     select.innerHTML   =
-        CHEFS.map(c => `<option value="${c}">${c}</option>`).join("") +
-        `<option value="">-- Сбросить --</option>`;
+    CHEFS.map(c => `<option value="${c}">${c}</option>`).join("") +
+    `<option value="">-- Сбросить --</option>`;
 }
 
 /**
@@ -45,7 +45,6 @@ function savePlan() {
 
     (chef ? ref.set({ chef }) : ref.remove()).then(() => {
         document.getElementById("planForm").style.display = "none";
-        // Small delay so the DB update is reflected before re-opening
         setTimeout(() => openDay(selectedKey), 200);
     });
 }
@@ -56,31 +55,27 @@ function savePlan() {
 function _renderLeaderboard() {
     const medals = ["🥇", "🥈", "🥉"];
     document.getElementById("dayLeaderboard").innerHTML =
-        getLeaderboard()
-            .map((s, i) => `<span>${medals[i] || ""} <b>${s.chef}</b>: ${s.count}</span>`)
-            .join(" | ");
+    getLeaderboard()
+    .map((s, i) => `<span>${medals[i] || ""} <b>${s.chef}</b>: ${s.count}</span>`)
+    .join(" | ");
 }
 
 /**
  * Renders the correct action button(s) depending on which day is selected
  * and whether the user is logged in.
- *
- * @param {string} key       Selected date key
- * @param {string} todayKey  Today's date key
  */
 function _renderActions(key, todayKey) {
     const actions = document.getElementById("actionContainer");
 
     if (!currentUser) {
         actions.innerHTML = `
-            <div style="background:#fef2f2; color:var(--danger); padding:12px; border-radius:12px; text-align:center;">
-                Нужно войти
-            </div>`;
+        <div style="background:#fef2f2; color:var(--danger); padding:12px; border-radius:12px; text-align:center;">
+        Нужно войти
+        </div>`;
         return;
     }
 
-    // Calculate offset in days from today
-    const selDate  = new Date(key);
+    const selDate   = new Date(key);
     const todayDate = new Date(todayKey);
     const diffDays  = Math.ceil((selDate - todayDate) / (1000 * 60 * 60 * 24));
 
@@ -89,30 +84,25 @@ function _renderActions(key, todayKey) {
 
     } else if (diffDays > 0 && diffDays <= PLAN_AHEAD_DAYS) {
         const planInfo = planData[key]
-            ? `<div style="text-align:center; margin-top:5px; font-size:12px;">План: <b>${planData[key].chef}</b></div>`
-            : "";
+        ? `<div style="text-align:center; margin-top:5px; font-size:12px;">План: <b>${planData[key].chef}</b></div>`
+        : "";
         actions.innerHTML = `<button class="btn-plan" onclick="showPlanForm()">📅 ЗАПЛАНИРОВАТЬ</button>${planInfo}`;
 
     } else {
         actions.innerHTML = `
-            <div style="text-align:center; color:#94a3b8; font-size:12px;">Только просмотр</div>`;
+        <div style="text-align:center; color:#94a3b8; font-size:12px;">Только просмотр</div>`;
     }
 }
 
-/** Renders action UI specifically for today. */
+/**
+ * Renders action UI for today.
+ * Multiple posts per day are allowed — camera button is always shown.
+ */
 function _renderTodayActions(key) {
     const actions = document.getElementById("actionContainer");
-    const posts   = globalData[key] || {};
-    const hasApproved = Object.values(posts).some(p => p.status === "approved");
 
-    if (hasApproved) {
-        actions.innerHTML = `
-            <div style="text-align:center; color:var(--success); font-weight:bold; padding:10px;">
-                ✅ Сегодня уже готовили
-            </div>`;
-    } else {
-        actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
-    }
+    // Camera button always available — unlimited posts per day
+    actions.innerHTML = `<button class="btn-camera" onclick="openCamera()">📸 СДЕЛАТЬ ФОТО</button>`;
 
     // Pre-fill the chef selector
     const select = document.getElementById("chefSelect");
