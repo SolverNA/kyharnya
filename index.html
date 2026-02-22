@@ -18,27 +18,15 @@
 </head>
 <body>
 
-<!-- ================================================
-     HEADER
-     ================================================ -->
 <header class="auth-header">
-    <!-- Streak counter -->
     <div id="fireStats" class="fire-stats">🔥 0</div>
-
-    <!-- Logged-in state: avatar + name -->
     <div id="userProfile" class="user-pill" onclick="openStats()">
         <b>Загрузка...</b>
     </div>
-
-    <!-- Kept for layout compatibility — hidden by default -->
     <div id="loginUI"  style="display:none;"></div>
     <div id="logoutUI" style="display:none;"></div>
 </header>
 
-
-<!-- ================================================
-     CALENDAR
-     ================================================ -->
 <main class="container">
     <nav class="month-nav">
         <button onclick="moveMonth(-1)" style="border:none; background:none; font-size:20px; cursor:pointer;">❮</button>
@@ -48,10 +36,6 @@
 
     <div class="calendar-grid" id="calendar"></div>
 
-
-    <!-- ============================================
-         DAY VIEW PANEL
-         ============================================ -->
     <section id="dayView" hidden>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h2 id="selectedDateTitle" style="margin:0; font-size:18px;"></h2>
@@ -59,13 +43,9 @@
                     style="border:none; background:#eee; padding:5px 10px; border-radius:8px;">✕</button>
         </div>
 
-        <!-- Mini leaderboard -->
         <div id="dayLeaderboard" class="leaderboard-day"></div>
-
-        <!-- Camera / Plan / Read-only action -->
         <div id="actionContainer"></div>
 
-        <!-- Upload form (shown after photo capture) -->
         <div id="uploadForm" style="display:none; margin-top:15px;">
             <label style="font-size:12px; color:#64748b;">КТО ГОТОВИЛ СЕГОДНЯ?</label>
             <select id="chefSelect"
@@ -77,7 +57,6 @@
             </button>
         </div>
 
-        <!-- Plan form (shown for future dates) -->
         <div id="planForm" style="display:none; margin-top:15px;">
             <label style="font-size:12px; color:#64748b;">НАЗНАЧИТЬ НА ЭТОТ ДЕНЬ:</label>
             <select id="planChefSelect"
@@ -89,15 +68,10 @@
             </button>
         </div>
 
-        <!-- Post feed -->
         <div id="postHistory"></div>
     </section>
 </main>
 
-
-<!-- ================================================
-     CAMERA OVERLAY
-     ================================================ -->
 <div id="cameraOverlay">
     <video id="webcam" autoplay playsinline></video>
     <div style="height:25%; display:flex; flex-direction:column;
@@ -108,38 +82,30 @@
     </div>
 </div>
 
-<!-- Hidden canvas used for photo capture -->
 <canvas id="photoCanvas" style="display:none;"></canvas>
 
-
-<!-- ================================================
-     MODAL — Statistics
-     ================================================ -->
 <div id="statsModal" onclick="if(event.target === this) this.style.display='none'">
     <div class="modal-content">
         <h3>📊 Статистика Кухарни</h3>
         <table id="statsTable"></table>
         <div style="text-align:center; margin-top:20px;">
             <button onclick="document.getElementById('statsModal').style.display='none'"
-                    style="padding:10px 20px; border:none; background:#eee; border-radius:8px;">
-                Закрыть
-            </button>
+                    style="padding:10px 20px; border:none; background:#eee; border-radius:8px;">Закрыть</button>
         </div>
     </div>
 </div>
 
-<!-- authModal kept in DOM for compatibility but unused -->
 <div id="authModal" style="display:none;">
     <div class="modal-content">
         <div id="roleButtons"></div>
     </div>
 </div>
 
-
 <!-- ================================================
-     SCRIPTS  (order matters — config first, app last)
+     SCRIPTS — порядок важен!
      ================================================ -->
 <script src="config.js"></script>
+<script src="firebase-init.js"></script>  <!-- db и auth доступны отсюда -->
 <script src="auth.js"></script>
 <script src="stats.js"></script>
 <script src="calendar.js"></script>
@@ -148,13 +114,6 @@
 <script src="posts.js"></script>
 <script src="app.js"></script>
 
-<!-- ── Vercel Speed Insights ─────────────── -->
-<script>
-    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-</script>
-<script defer src="/_vercel/speed-insights/script.js"></script>
-
-<!-- ── Vercel Speed Insights ─────────────── -->
 <script>
     window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
 </script>
