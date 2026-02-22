@@ -1,25 +1,36 @@
 // ===================================================
-//  app.js — Global state & data listener
-//  Firebase already initialized in firebase-init.js
+//  app.js — Global state & Firebase real-time listener
 // ===================================================
 
-// ── Global application state ─────────────────────────
-
 /** @type {{ uid: string, displayName: string, photoURL: string }|null} */
-let currentUser = null;
+let currentUser  = null;
 
-/** @type {string|null} */
-let currentRole = null;
+/** @type {string|null} Chef name bound to the logged-in user */
+let currentRole  = null;
 
-let viewDate    = new Date();
-let selectedKey = "";
-let tempImage   = null;
-let globalData  = {};
-let planData    = {};
+/** Month/year currently shown in the calendar */
+let viewDate     = new Date();
+
+/** "YYYY-MM-DD" key of the day currently open in the day panel */
+let selectedKey  = "";
+
+/** Base64 JPEG captured from camera, waiting to be posted */
+let tempImage    = null;
+
+/** All cook posts keyed by date then post ID: { [dateKey]: { [postId]: PostObject } } */
+let globalData   = {};
+
+/** Planning entries keyed by date: { [dateKey]: { chef: string } } */
+let planData     = {};
+
+/** Google-UID → { name, chatId } mapping stored in Firebase */
 let usersMapping = {};
+
+/** Date keys that have a 🔥 — populated by calculateStats() */
 let fireDaysMap  = {};
 
 // ── Firebase real-time listener ──────────────────────
+// Subscribes once and re-renders UI on every DB change
 
 db.ref("/").on("value", snapshot => {
     const val    = snapshot.val() || {};
@@ -38,5 +49,5 @@ db.ref("/").on("value", snapshot => {
     }
 });
 
-// ── Bootstrap ────────────────────────────────────────
+// ── Bootstrap ─────────────────────────────────────────
 initAuthListener();

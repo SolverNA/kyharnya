@@ -3,44 +3,35 @@
 // ===================================================
 
 /**
- * Walks all dates from globalData + planData in chronological order,
- * computes the fire-days map and current streak count,
- * and saves aggregated stats into `window.appStats`.
- *
- * Side-effects:
- *   - Populates global `fireDaysMap`
- *   - Updates the 🔥 counter in the header
- *   - Writes `window.appStats` for use by openStats() and getLeaderboard()
+ * Walks all dates chronologically, computes fire-days map,
+ * current streak count, and aggregated stats.
+ * Writes results into `window.appStats` and `fireDaysMap`.
  */
 function calculateStats() {
     let currentStreak = 0;
 
-    // Balance counters — how many times each chef cooked
     const balanceCounts = {};
     CHEFS.forEach(c => { balanceCounts[c] = 0; });
 
-    // Aggregates for the stats modal
     const chefCounts = {};
     CHEFS.forEach(c => { chefCounts[c] = 0; });
 
-    const userPosts = {};  // author → post count
-    const userVotes = {};  // voter name → vote count
+    const userPosts = {};
+    const userVotes = {};
 
-    fireDaysMap = {}; // reset global
+    fireDaysMap = {};
 
-    // Merge all known date keys and sort chronologically
     const allDates    = new Set([...Object.keys(globalData), ...Object.keys(planData)]);
     const sortedDates = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b));
 
     sortedDates.forEach(date => {
-        const posts       = globalData[date] ? Object.values(globalData[date]) : [];
+        const posts        = globalData[date] ? Object.values(globalData[date]) : [];
         const approvedPost = posts.find(p => p.status === "approved");
 
-        // ── Aggregate stats for modal ──
         posts.forEach(p => {
             if (p.status !== "approved") return;
 
-            chefCounts[p.chef] = (chefCounts[p.chef] || 0) + 1;
+            chefCounts[p.chef]  = (chefCounts[p.chef]  || 0) + 1;
             userPosts[p.author] = (userPosts[p.author] || 0) + 1;
 
             if (p.votes) {
@@ -50,7 +41,6 @@ function calculateStats() {
             }
         });
 
-        // ── Streak & fire-day logic ──
         let contributesToStreak = false;
 
         if (approvedPost) {
@@ -58,20 +48,16 @@ function calculateStats() {
             contributesToStreak = true;
         }
 
-        // Check balance: no chef should be ahead of others by more than 1
-        const counts = Object.values(balanceCounts);
-        const diff   = Math.max(...counts) - Math.min(...counts);
-        const balanceOk = diff <= 1;
+        const counts    = Object.values(balanceCounts);
+        const balanceOk = Math.max(...counts) - Math.min(...counts) <= 1;
 
         if (!balanceOk) {
-            currentStreak = 0;
+            currentStreak     = 0;
             fireDaysMap[date] = false;
-            return; // skip rest for this date
+            return;
         }
 
-        const plan = planData[date];
-        if (plan && !approvedPost) {
-            // Planned but not yet cooked — no fire yet
+        if (planData[date] && !approvedPost) {
             contributesToStreak = false;
         }
 
@@ -81,9 +67,10 @@ function calculateStats() {
         }
     });
 
-    document.getElementById("fireStats").innerText = `🔥 ${currentStreak}`;
+    // Guard: element may not exist if Telegram screen replaced body
+    const el = document.getElementById("fireStats");
+    if (el) el.innerText = `🔥 ${currentStreak}`;
 
-    // Expose for other modules
     window.appStats = { chefCounts, userPosts, userVotes };
 }
 
@@ -95,12 +82,13 @@ function getLeaderboard() {
     if (!window.appStats) return [];
 
     return Object.entries(window.appStats.chefCounts)
-        .map(([chef, count]) => ({ chef, count }))
-        .sort((a, b) => b.count - a.count);
+    .map(([chef, count]) => ({ chef, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 /**
  * Opens and populates the statistics modal.
+ * Only available to logged-in users.
  */
 function openStats() {
     if (!currentUser) return;
@@ -112,19 +100,19 @@ function openStats() {
     const allNames = new Set([
         ...CHEFS,
         ...Object.keys(s.userPosts),
-        ...Object.keys(s.userVotes),
+                             ...Object.keys(s.userVotes),
     ]);
 
     let html = `<tr><th>Имя</th><th>Готовил</th><th>Посты</th><th>Голоса</th></tr>`;
 
     allNames.forEach(name => {
         html += `
-            <tr>
-                <td><b>${name}</b></td>
-                <td>${s.chefCounts[name] || 0}</td>
-                <td>${s.userPosts[name]  || 0}</td>
-                <td>${s.userVotes[name]  || 0}</td>
-            </tr>`;
+        <tr>
+        <td><b>${name}</b></td>
+        <td>${s.chefCounts[name] || 0}</td>
+        <td>${s.userPosts[name]  || 0}</td>
+        <td>${s.userVotes[name]  || 0}</td>
+        </tr>`;
     });
 
     table.innerHTML = html;
