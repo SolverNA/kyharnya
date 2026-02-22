@@ -30,10 +30,16 @@ let usersMapping = {};
 let fireDaysMap  = {};
 
 // ── Firebase real-time listener ──────────────────────
-// Subscribes once and re-renders UI on every DB change
 
 db.ref("/").on("value", snapshot => {
     const val    = snapshot.val() || {};
+
+    console.log("=== Firebase snapshot received ===");
+    console.log("cook_posts keys:", Object.keys(val.cook_posts || {}));
+    console.log("planning keys:", Object.keys(val.planning || {}));
+    console.log("users_mapping keys:", Object.keys(val.users_mapping || {}));
+    console.log("Full val:", JSON.stringify(val).slice(0, 500));
+
     globalData   = val.cook_posts    || {};
     planData     = val.planning      || {};
     usersMapping = val.users_mapping || {};
@@ -47,6 +53,8 @@ db.ref("/").on("value", snapshot => {
     if (!document.getElementById("dayView").hidden) {
         updateHistory();
     }
+}, error => {
+    console.error("=== Firebase read ERROR ===", error.code, error.message);
 });
 
 // ── Bootstrap ─────────────────────────────────────────
