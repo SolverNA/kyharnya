@@ -1,54 +1,33 @@
 // ===================================================
 //  api/notify.js — Daily cron notifications
 //
-//  Два типа уведомлений:
-//  1. COOKING_REMINDER (раньше) — назначенному повару "ты готовишь сегодня"
-//  2. VOTE_REMINDER (позже)    — напоминание проголосовать за пост
+//  Запускается раз в день в 6:00 UTC (9:00 МСК).
+//  Vercel Hobby поддерживает только один запуск в сутки.
 //
-//  Vercel запускает этот endpoint по расписанию из vercel.json.
-//  Реальное время определяется по текущему UTC-часу внутри функции.
+//  Отправляет оба типа уведомлений за один вызов:
+//  1. Назначенному повару — "сегодня готовишь ты"
+//  2. Всем остальным    — напоминание проголосовать
+//     (только если есть незакрытые посты)
 // ===================================================
 
 const { db }          = require("../lib/firebase");
 const { sendMessage } = require("../lib/telegram");
 const { MSG }         = require("../messages");
 
-// ── Время уведомлений (UTC) ──────────────────────────
-// Меняй здесь — и в vercel.json соответственно!
-// Москва = UTC+3. Хочешь в 9:00 МСК → 6 UTC.
-const COOKING_REMINDER_HOUR_UTC = 6;  // 9:00 МСК — кому готовить сегодня
-const VOTE_REMINDER_HOUR_UTC    = 7;  // 10:00 МСК — напоминание проголосовать
-
 export default async function handler(req, res) {
-    // Защита: только Vercel cron или ручной вызов с секретом
-    const authHeader = req.headers.authorization;
     const isVercelCron = req.headers["x-vercel-cron"] === "1";
+    const authHeader   = req.headers.authorization;
 
     if (!isVercelCron && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).end();
     }
 
-    const currentHourUTC = new Date().getUTCHours();
-    const results = { cooking: 0, vote: 0, skipped: false };
-
     try {
-        // ── Тип 1: Уведомление назначенному повару ──
-        if (currentHourUTC === COOKING_REMINDER_HOUR_UTC) {
-            results.cooking = await _sendCookingReminders();
-        }
+        const cooking = await _sendCookingReminders();
+        const vote    = await _sendVoteReminders();
 
-        // ── Тип 2: Напоминание проголосовать ──
-        if (currentHourUTC === VOTE_REMINDER_HOUR_UTC) {
-            results.vote = await _sendVoteReminders();
-        }
-
-        if (currentHourUTC !== COOKING_REMINDER_HOUR_UTC &&
-            currentHourUTC !== VOTE_REMINDER_HOUR_UTC) {
-            results.skipped = true;
-            }
-
-            console.log(`Notify done at UTC ${currentHourUTC}:00`, results);
-        return res.status(200).json({ ok: true, hourUTC: currentHourUTC, ...results });
+        console.log("Notify done:", { cooking, vote });
+        return res.status(200).json({ ok: true, cooking, vote });
 
     } catch (err) {
         console.error("Notify cron error:", err);
@@ -59,23 +38,19 @@ export default async function handler(req, res) {
 // ── Тип 1: Кто готовит сегодня ───────────────────────
 
 async function _sendCookingReminders() {
-    const todayKey    = _getTodayKey();
-    const plan        = await db.ref(`planning/${todayKey}`).once("value");
-    const planData    = plan.val();
+    const todayKey = _getTodayKey();
+    const plan     = await db.ref(`planning/${todayKey}`).once("value");
+    const planData = plan.val();
 
-    // Нет плана на сегодня — ничего не делаем
     if (!planData?.chef) return 0;
 
     const mappingSnap = await db.ref("users_mapping").once("value");
     const mapping     = mappingSnap.val() || {};
-
     let sent = 0;
 
-    // Находим запись назначенного повара и отправляем ему
-    for (const [uid, user] of Object.entries(mapping)) {
+    for (const [, user] of Object.entries(mapping)) {
         if (user.name !== planData.chef) continue;
         if (!user.chatId) continue;
-
         await sendMessage(user.chatId, MSG.cookingToday(planData.chef, todayKey));
         sent++;
     }
@@ -84,12 +59,12 @@ async function _sendCookingReminders() {
 }
 
 // ── Тип 2: Напоминание проголосовать ─────────────────
+// Актуально если вчерашний пост остался без решения
 
 async function _sendVoteReminders() {
     const todayKey   = _getTodayKey();
     const postsSnap  = await db.ref(`cook_posts/${todayKey}`).once("value");
     const posts      = postsSnap.val();
-
     if (!posts) return 0;
 
     const mappingSnap = await db.ref("users_mapping").once("value");
@@ -97,21 +72,17 @@ async function _sendVoteReminders() {
 
     const tgMsgsSnap = await db.ref(`tg_messages/${todayKey}`).once("value");
     const tgMsgs     = tgMsgsSnap.val() || {};
-
     let sent = 0;
 
     for (const [postKey, post] of Object.entries(posts)) {
         if (post.status !== "pending") continue;
+        if (!tgMsgs[postKey]) continue;
 
-        const votes     = post.votes || {};
-        const postTgMsg = tgMsgs[postKey];
-        if (!postTgMsg) continue;
-
+        const votes = post.votes || {};
         for (const [uid, user] of Object.entries(mapping)) {
             if (!user.chatId)          continue;
-            if (uid === post.authorId) continue; // автор не голосует
-            if (votes[uid])            continue; // уже проголосовал
-
+            if (uid === post.authorId) continue;
+            if (votes[uid])            continue;
             await sendMessage(user.chatId, MSG.reminder(post.chef));
             sent++;
         }
@@ -122,8 +93,5 @@ async function _sendVoteReminders() {
 
 function _getTodayKey() {
     const now = new Date();
-    const y   = now.getFullYear();
-    const m   = String(now.getMonth() + 1).padStart(2, "0");
-    const d   = String(now.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
