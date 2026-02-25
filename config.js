@@ -1,10 +1,8 @@
 // ===================================================
 //  config.js — App constants
-//  Firebase keys are injected by Vercel at build time
-//  via window.ENV (see index.html inline script)
+//  Firebase keys are injected via window.ENV (api/env.js)
 // ===================================================
 
-/** Firebase config — values come from Vercel env vars injected into HTML */
 const FIREBASE_CONFIG = {
     apiKey:            window.ENV.FIREBASE_API_KEY,
     authDomain:        window.ENV.FIREBASE_AUTH_DOMAIN,
@@ -23,3 +21,19 @@ const VOTE_THRESHOLD = 2;
 
 /** How many days ahead planning is allowed. */
 const PLAN_AHEAD_DAYS = 7;
+
+// ── Notification settings ─────────────────────────────
+// Все времена в UTC. Москва = UTC+3, поэтому вычитай 3 часа.
+// Пример: хочешь в 10:00 МСК → ставь 7
+
+/**
+ * Час (UTC) для отправки напоминания проголосовать.
+ * 7 UTC = 10:00 МСК
+ */
+const REMINDER_HOUR_UTC = 7;
+
+/**
+ * Час (UTC) для уведомления "ты готовишь сегодня".
+ * 6 UTC = 9:00 МСК
+ */
+const COOKING_REMINDER_HOUR_UTC = 6;
