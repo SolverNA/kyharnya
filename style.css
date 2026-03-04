@@ -1,35 +1,127 @@
 /* ===================================================
-   KUKHARNYA — Global Styles
-   =================================================== */
+ K UKHARNYA — Global Styl*es
+ =================================================== */
 
-/* ── CSS Variables ── */
+/* ── CSS Variables — Light (default) ── */
 :root {
-    --bg:      #f1f5f9;
-    --card:    #ffffff;
-    --primary: #4f46e5;
-    --danger:  #ef4444;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --text:    #0f172a;
-    --gray:    #94a3b8;
+    --bg:         #f1f5f9;
+    --card:       #ffffff;
+    --primary:    #4f46e5;
+    --danger:     #ef4444;
+    --success:    #10b981;
+    --warning:    #f59e0b;
+    --text:       #0f172a;
+    --gray:       #94a3b8;
+
+    /* Day cell */
+    --day-bg:     #ffffff;
+    --day-today-bg:    #eef2ff;
+    --day-hasdata-bg:  #dcfce7;
+
+    /* Header */
+    --header-bg:  #ffffff;
+    --header-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+    /* Month nav */
+    --nav-bg:     #ffffff;
+
+    /* Day view */
+    --dayview-bg: #ffffff;
+
+    /* Post card */
+    --post-bg:    #f8fafc;
+    --post-border:#e2e8f0;
+
+    /* Leaderboard */
+    --lb-bg:      #f8fafc;
+
+    /* Vote */
+    --vote-bg:    #ffffff;
+
+    /* Modal */
+    --modal-bg:   #ffffff;
+
+    /* Select / input */
+    --input-border: #ddd;
+    --input-bg:   #ffffff;
+
+    /* Month nav button */
+    --nav-btn-color: #0f172a;
+
+    /* Fire stats */
+    --fire-bg:    #fffbeb;
+    --fire-border:#fcd34d;
+
+    /* Plan name */
+    --plan-name-color: #4f46e5;
+
+    /* Weekday */
+    --weekday-color: #64748b;
+}
+
+/* ── CSS Variables — Dark ── */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:         #0d0d14;
+        --card:       #13131c;
+        --primary:    #6366f1;
+        --danger:     #f87171;
+        --success:    #34d399;
+        --warning:    #fbbf24;
+        --text:       #e2e8f0;
+        --gray:       #64748b;
+
+        --day-bg:          #1a1a28;
+        --day-today-bg:    #1e1b4b;
+        --day-hasdata-bg:  #064e3b;
+
+        --header-bg:  #13131c;
+        --header-shadow: 0 1px 3px rgba(0,0,0,0.4);
+
+        --nav-bg:     #13131c;
+
+        --dayview-bg: #13131c;
+
+        --post-bg:    #1a1a28;
+        --post-border:#2e2e45;
+
+        --lb-bg:      #1a1a28;
+
+        --vote-bg:    #13131c;
+
+        --modal-bg:   #1a1a28;
+
+        --input-border: #2e2e45;
+        --input-bg:   #0d0d14;
+
+        --nav-btn-color: #e2e8f0;
+
+        --fire-bg:    #1c1500;
+        --fire-border:#92400e;
+
+        --plan-name-color: #818cf8;
+
+        --weekday-color: #94a3b8;
+    }
 }
 
 /* ── Base ── */
 body {
     font-family: 'Inter', -apple-system, sans-serif;
     background: var(--bg);
+    color: var(--text);
     margin: 0;
     padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: var(--text);
+    transition: background 0.2s, color 0.2s;
 }
 
 
 /* ===================================================
-   HEADER & AUTH
-   =================================================== */
+ H EADER & AUTH          *
+ =================================================== */
 
 .auth-header {
     width: 100%;
@@ -38,10 +130,10 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 12px;
-    background: white;
+    background: var(--header-bg);
     border-radius: 16px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--header-shadow);
 }
 
 .fire-stats {
@@ -49,10 +141,10 @@ body {
     font-weight: 800;
     font-size: 18px;
     color: var(--warning);
-    background: #fffbeb;
+    background: var(--fire-bg);
     padding: 8px 16px;
     border-radius: 20px;
-    border: 1px solid #fcd34d;
+    border: 1px solid var(--fire-border);
 }
 
 .user-pill {
@@ -83,8 +175,8 @@ body {
 
 
 /* ===================================================
-   CALENDAR
-   =================================================== */
+ C ALENDAR               *
+ =================================================== */
 
 .container {
     width: 100%;
@@ -96,9 +188,14 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    background: white;
+    background: var(--nav-bg);
     padding: 10px;
     border-radius: 12px;
+    color: var(--text);
+}
+
+.month-nav button {
+    color: var(--nav-btn-color);
 }
 
 .calendar-grid {
@@ -111,11 +208,12 @@ body {
     text-align: center;
     font-size: 12px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--weekday-color);
 }
 
 .day {
-    background: var(--card);
+    background: var(--day-bg);
+    color: var(--text);
     aspect-ratio: 1 / 1;
     border-radius: 12px;
     display: flex;
@@ -132,13 +230,16 @@ body {
 }
 
 /* Day state modifiers */
-.day.today    { border-color: var(--primary); background: #eef2ff; }
-.day.has-data { background: #dcfce7; border-color: var(--success); }
+.day.today    { border-color: var(--primary); background: var(--day-today-bg); }
+.day.has-data { background: var(--day-hasdata-bg); border-color: var(--success); }
 .day.planned  { border-style: dashed; border-color: var(--gray); }
 .day.is-fire  {
     background: #fff7ed;
     border-color: var(--warning);
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+@media (prefers-color-scheme: dark) {
+    .day.is-fire { background: #1c1200; }
 }
 
 .day-label { font-size: 14px; z-index: 2; }
@@ -146,7 +247,7 @@ body {
 .plan-name {
     font-size: 9px;
     text-transform: uppercase;
-    color: var(--primary);
+    color: var(--plan-name-color);
     font-weight: 800;
     text-align: center;
     margin-top: 2px;
@@ -162,15 +263,27 @@ body {
 
 
 /* ===================================================
-   DAY VIEW
-   =================================================== */
+ D AY VIEW               *
+ =================================================== */
 
 #dayView {
-    margin-top: 20px;
-    background: white;
-    padding: 20px;
-    border-radius: 24px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+margin-top: 20px;
+background: var(--dayview-bg);
+color: var(--text);
+padding: 20px;
+border-radius: 24px;
+box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+}
+
+#dayView h2 { color: var(--text); }
+
+#dayView button[onclick="document.getElementById('dayView').hidden=true"] {
+background: var(--post-bg);
+color: var(--text);
+border: none;
+padding: 5px 10px;
+border-radius: 8px;
+cursor: pointer;
 }
 
 .leaderboard-day {
@@ -178,7 +291,7 @@ body {
     gap: 10px;
     justify-content: center;
     margin-bottom: 15px;
-    background: #f8fafc;
+    background: var(--lb-bg);
     padding: 10px;
     border-radius: 12px;
     font-size: 12px;
@@ -186,8 +299,8 @@ body {
 
 
 /* ===================================================
-   ACTION BUTTONS
-   =================================================== */
+ A CTION BUTTONS         *
+ =================================================== */
 
 .btn-camera {
     width: 100%;
@@ -213,17 +326,42 @@ body {
     margin-top: 10px;
 }
 
+/* Chef select & plan form */
+#chefSelect, #planChefSelect {
+background: var(--input-bg);
+color: var(--text);
+border: 1px solid var(--input-border);
+}
+
+#saveBtn {
+background: var(--success);
+color: white;
+border: none;
+border-radius: 10px;
+font-weight: 600;
+}
+
+/* Plan form save button */
+#planForm button {
+background: var(--primary);
+color: white;
+border: none;
+border-radius: 10px;
+font-weight: 600;
+}
+
 
 /* ===================================================
-   POST CARD
-   =================================================== */
+ P OST CARD              *
+ =================================================== */
 
 .post-item {
     margin-top: 15px;
     border-radius: 16px;
     overflow: hidden;
-    border: 2px solid #e2e8f0;
-    background: #f8fafc;
+    border: 2px solid var(--post-border);
+    background: var(--post-bg);
+    color: var(--text);
     position: relative;
     transition: all 0.3s ease;
 }
@@ -231,10 +369,13 @@ body {
 .post-item img { width: 100%; display: block; }
 
 /* Post status variants */
-.post-green-seq { border-color: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-.post-pending   { border-color: #cbd5e1; }
+.post-green-seq { border-color: var(--success); box-shadow: 0 0 10px rgba(16,185,129,0.2); }
+.post-pending   { border-color: var(--post-border); }
 
 .post-rejected  { border-color: var(--danger); background: #fef2f2; height: 60px; overflow: hidden; }
+@media (prefers-color-scheme: dark) {
+    .post-rejected { background: #1f0a0a; }
+}
 .post-rejected.expanded { height: auto; }
 .post-rejected .post-header {
     display: flex;
@@ -242,6 +383,10 @@ body {
     padding: 10px;
     align-items: center;
     cursor: pointer;
+}
+
+.post-item .post-body div[style*="padding:12px"] {
+    color: var(--text);
 }
 
 .status-badge {
@@ -253,41 +398,47 @@ body {
     font-size: 10px;
     font-weight: bold;
     text-transform: uppercase;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0,0,0,0.7);
     color: white;
 }
 
 
 /* ===================================================
-   VOTING
-   =================================================== */
+ V OTING                 *
+ =================================================== */
 
 .vote-actions {
     padding: 10px;
     display: flex;
     gap: 10px;
     justify-content: space-between;
-    background: #fff;
+    background: var(--vote-bg);
 }
 
 .vote-btn {
     flex: 1;
     padding: 8px;
     border-radius: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--post-border);
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
     font-size: 12px;
     transition: 0.2s;
+    background: var(--vote-bg);
+    color: var(--text);
 }
 
-.vote-btn:hover  { background: #f8fafc; transform: scale(1.02); }
+.vote-btn:hover  { opacity: 0.85; transform: scale(1.02); }
 .vote-btn:active { transform: scale(0.98); }
 
 .vote-btn.approve { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
 .vote-btn.reject  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+@media (prefers-color-scheme: dark) {
+    .vote-btn.approve { background: #052e16; border-color: #166534; }
+    .vote-btn.reject  { background: #1f0a0a; border-color: #7f1d1d; }
+}
 
 .voter-avatars { display: flex; margin-top: 4px; justify-content: center; }
 .voter-avatars img {
@@ -300,17 +451,17 @@ body {
 
 
 /* ===================================================
-   CAMERA OVERLAY
-   =================================================== */
+ C AMERA OVERLAY         *
+ =================================================== */
 
 #cameraOverlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: #000;
-    display: none;
-    flex-direction: column;
-    z-index: 999;
+position: fixed;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: #000;
+display: none;
+flex-direction: column;
+z-index: 999;
 }
 
 video { width: 100%; height: 75%; object-fit: cover; }
@@ -326,23 +477,24 @@ video { width: 100%; height: 75%; object-fit: cover; }
 
 
 /* ===================================================
-   MODALS
-   =================================================== */
+ M ODALS                 *
+ =================================================== */
 
 #statsModal,
 #authModal {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+position: fixed;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: rgba(0,0,0,0.8);
+display: none;
+align-items: center;
+justify-content: center;
+z-index: 1000;
 }
 
 .modal-content {
-    background: white;
+    background: var(--modal-bg);
+    color: var(--text);
     padding: 20px;
     border-radius: 20px;
     width: 90%;
@@ -368,9 +520,9 @@ video { width: 100%; height: 75%; object-fit: cover; }
 
 
 /* ===================================================
-   STATS TABLE
-   =================================================== */
+ S TATS TABLE            *
+ =================================================== */
 
 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
-th { color: #64748b; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--post-border); font-size: 13px; color: var(--text); }
+th { color: var(--gray); }
