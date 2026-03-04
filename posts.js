@@ -2,9 +2,10 @@
 //  posts.js — Post history rendering & voting logic
 // ===================================================
 
+const PLACEHOLDER_IMG = "/placeholder.jpg";
+
 /**
  * Re-renders the post list for `selectedKey`.
- * Called every time globalData changes or the day panel opens.
  */
 function updateHistory() {
     const postsObj = globalData[selectedKey] || {};
@@ -17,10 +18,6 @@ function updateHistory() {
     posts.map(post => _buildPostHTML(post)).join("");
 }
 
-/**
- * Casts a vote via Firebase transaction.
- * Resolves the post once VOTE_THRESHOLD votes accumulate in one direction.
- */
 function vote(dateKey, postKey, type) {
     if (!currentUser) return;
 
@@ -48,9 +45,6 @@ function vote(dateKey, postKey, type) {
     });
 }
 
-/**
- * Toggles expanded/collapsed state of a rejected post card.
- */
 function togglePost(key) {
     const el      = document.getElementById(`post-${key}`);
     const content = el.querySelector(".post-body");
@@ -61,12 +55,6 @@ function togglePost(key) {
 
 // ── Private helpers ──────────────────────────────────
 
-/**
- * Builds the full HTML for a single post card.
- * - Pending + not author → shows vote buttons
- * - Pending + author     → shows read-only summary + "can't vote" note
- * - Approved / rejected  → shows read-only summary
- */
 function _buildPostHTML(post) {
     const votes     = post.votes || {};
     const ups       = Object.values(votes).filter(v => v.val === "like").length;
@@ -77,9 +65,10 @@ function _buildPostHTML(post) {
 
     const statusMeta  = _getStatusMeta(status);
     const isCollapsed = status === "rejected";
-
-    // Who sees vote buttons: pending post + logged in + NOT the author
     const showVoteButtons = isPending && currentUser && !isAuthor;
+
+    // Use placeholder if img is missing or empty
+    const imgSrc = post.img || PLACEHOLDER_IMG;
 
     return `
     <div class="post-item ${_postClass(status)}" id="post-${post.key}">
@@ -92,7 +81,9 @@ function _buildPostHTML(post) {
 
         <div class="post-body" style="${isCollapsed ? "display:none" : ""}">
         <div style="position:relative;">
-        <img src="${post.img}" alt="Фото блюда">
+        <img src="${imgSrc}"
+        alt="Фото блюда"
+        onerror="this.onerror=null; this.src='${PLACEHOLDER_IMG}'">
         <div class="status-badge" style="background:${statusMeta.color}">
         ${statusMeta.label}
         </div>
@@ -120,9 +111,6 @@ function _getStatusMeta(status) {
     }[status] || { label: "На голосовании", color: "#94a3b8" };
 }
 
-/**
- * Vote action buttons shown to non-authors on pending posts.
- */
 function _buildVoteActions(postKey, ups, downs, votes) {
     const likeAvatars    = _buildAvatarStack(votes, "like");
     const dislikeAvatars = _buildAvatarStack(votes, "dislike");
@@ -140,10 +128,6 @@ function _buildVoteActions(postKey, ups, downs, votes) {
     </div>`;
 }
 
-/**
- * Read-only vote tally — shown to author and after a decision is made.
- * @param {boolean} showAuthorNote  Show "can't vote" hint for pending author
- */
 function _buildVoteSummary(ups, downs, status, showAuthorNote) {
     const upColor   = status === "approved" ? "var(--success)" : "#64748b";
     const downColor = status === "rejected"  ? "var(--danger)"  : "#64748b";
@@ -162,9 +146,6 @@ function _buildVoteSummary(ups, downs, status, showAuthorNote) {
     ${authorNote}`;
 }
 
-/**
- * Builds avatar img tags filtered by vote type.
- */
 function _buildAvatarStack(votes, type) {
     return Object.values(votes)
     .filter(v => v.val === type)
