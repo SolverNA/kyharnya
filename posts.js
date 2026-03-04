@@ -67,8 +67,8 @@ function _buildPostHTML(post) {
     const isCollapsed = status === "rejected";
     const showVoteButtons = isPending && currentUser && !isAuthor;
 
-    // Use placeholder if img is missing or empty
-    const imgSrc = post.img || PLACEHOLDER_IMG;
+    // Use placeholder if img is missing, empty, or literally "undefined"
+    const imgSrc = (post.img && post.img !== "undefined") ? post.img : PLACEHOLDER_IMG;
 
     return `
     <div class="post-item ${_postClass(status)}" id="post-${post.key}">
