@@ -2,7 +2,7 @@
 //  posts.js — Post history rendering & voting logic
 // ===================================================
 
-const PLACEHOLDER_IMG = "/placeholder.jpg";
+const PLACEHOLDER_IMG = "placeholder.jpg";
 
 /**
  * Re-renders the post list for `selectedKey`.
