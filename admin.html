@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кухарня — Админ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:       #0a0a0f;
+            --surface:  #13131a;
+            --border:   #1e1e2e;
+            --accent:   #f59e0b;
+            --danger:   #ef4444;
+            --success:  #10b981;
+            --pending:  #6366f1;
+            --text:     #e2e8f0;
+            --muted:    #475569;
+            --card:     #0f0f18;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Login screen ── */
+        #loginScreen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at 50% 0%, #1a1025 0%, var(--bg) 70%);
+        }
+
+        .login-box {
+            width: 360px;
+            padding: 48px 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 4px;
+            letter-spacing: -1px;
+        }
+
+        .login-sub {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 40px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Manrope', sans-serif;
+            font-size: 15px;
+            margin-bottom: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .login-box input:focus { border-color: var(--accent); }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn-login:hover   { opacity: 0.9; }
+        .btn-login:active  { transform: scale(0.98); }
+
+        .login-error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        /* ── Main layout ── */
+        #adminApp { display: none; }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar-logo {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--muted);
+            font-family: 'Manrope', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .tab-btn.active {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-logout {
+            padding: 7px 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+        /* ── Content area ── */
+        .content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ── Month picker ── */
+        .month-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .month-bar button {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .month-bar button:hover { border-color: var(--accent); }
+
+        #monthLabel {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            min-width: 140px;
+            text-align: center;
+        }
+
+        .btn-refresh {
+            margin-left: auto;
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .btn-refresh:hover { border-color: var(--accent); }
+
+        /* ── Posts grid ── */
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .post-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .post-card:hover { border-color: #2e2e40; }
+        .post-card.approved { border-color: #065f46; }
+        .post-card.rejected { border-color: #7f1d1d; }
+        .post-card.pending  { border-color: #312e81; }
+
+        .post-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+            background: var(--border);
+        }
+
+        .post-card-body { padding: 14px; }
+
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .post-chef {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-pill {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .status-pill.approved { background: #065f46; color: #6ee7b7; }
+        .status-pill.rejected { background: #7f1d1d; color: #fca5a5; }
+        .status-pill.pending  { background: #312e81; color: #a5b4fc; }
+
+        .post-date {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-sm {
+            flex: 1;
+            padding: 7px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-sm.approve:hover { background: #065f46; color: #6ee7b7; border-color: #065f46; }
+        .btn-sm.reject:hover  { background: #7f1d1d; color: #fca5a5; border-color: #7f1d1d; }
+        .btn-sm.delete:hover  { background: #450a0a; color: var(--danger); border-color: var(--danger); }
+
+        /* ── Planning table ── */
+        .plan-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .plan-table th {
+            background: var(--surface);
+            padding: 12px 16px;
+            text-align: left;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .plan-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .plan-table tr:last-child td { border-bottom: none; }
+        .plan-table tr:hover td { background: #0f0f1a; }
+
+        .chef-select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Manrope', sans-serif;
+            font-size: 13px;
+            padding: 6px 10px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .btn-plan-save {
+            padding: 6px 12px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .btn-plan-save:hover { opacity: 0.85; }
+
+        .btn-plan-del {
+            padding: 6px 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-left: 6px;
+        }
+
+        .btn-plan-del:hover { border-color: var(--danger); color: var(--danger); }
+
+        /* ── Users table ── */
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .users-table th {
+            background: var(--surface);
+            padding: 12px 16px;
+            text-align: left;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .users-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .users-table tr:last-child td { border-bottom: none; }
+
+        .user-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--border);
+        }
+
+        .user-id {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: monospace;
+        }
+
+        /* ── Empty state ── */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-text { font-size: 14px; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.success { border-color: var(--success); color: var(--success); }
+        #toast.error   { border-color: var(--danger);  color: var(--danger); }
+
+        /* ── Loading ── */
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<!-- ================================================
+     LOGIN SCREEN
+     ================================================ -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="login-logo">Кухарня</div>
+        <div class="login-sub">Admin Panel</div>
+        <input type="password" id="passwordInput" placeholder="Пароль" autocomplete="current-password">
+        <button class="btn-login" onclick="login()">ВОЙТИ</button>
+        <div class="login-error" id="loginError"></div>
+    </div>
+</div>
+
+<!-- ================================================
+     ADMIN APP
+     ================================================ -->
+<div id="adminApp">
+
+    <div class="topbar">
+        <div class="topbar-logo">🍳 КУХАРНЯ</div>
+        <div class="topbar-right">
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('posts')">Посты</button>
+                <button class="tab-btn"        onclick="switchTab('planning')">Планирование</button>
+                <button class="tab-btn"        onclick="switchTab('users')">Пользователи</button>
+            </div>
+            <button class="btn-logout" onclick="logout()">Выйти</button>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- Posts -->
+        <div id="section-posts" class="section active">
+            <div class="month-bar">
+                <button onclick="changeMonth(-1)">❮</button>
+                <span id="monthLabel"></span>
+                <button onclick="changeMonth(1)">❯</button>
+                <button class="btn-refresh" onclick="loadPosts()">↻ Обновить</button>
+            </div>
+            <div id="postsContainer"><div class="empty"><div class="empty-icon">🍽️</div><div class="empty-text">Загрузка...</div></div></div>
+        </div>
+
+        <!-- Planning -->
+        <div id="section-planning" class="section">
+            <div class="month-bar">
+                <button onclick="changeMonth(-1)">❮</button>
+                <span id="monthLabelPlan"></span>
+                <button onclick="changeMonth(1)">❯</button>
+                <button class="btn-refresh" onclick="loadPlanning()">↻ Обновить</button>
+            </div>
+            <div id="planningContainer"></div>
+        </div>
+
+        <!-- Users -->
+        <div id="section-users" class="section">
+            <div id="usersContainer"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Загрузка...</div></div></div>
+        </div>
+
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────
+const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
+let viewDate    = new Date();
+let currentTab  = "posts";
+
+// ── Auth ──────────────────────────────────────────────
+async function login() {
+    const password = document.getElementById("passwordInput").value;
+    const errEl    = document.getElementById("loginError");
+    errEl.textContent = "";
+
+    const res  = await fetch("/api/admin/auth", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ password }),
+    });
+
+    if (res.ok) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("adminApp").style.display    = "block";
+        initApp();
+    } else {
+        const data = await res.json();
+        errEl.textContent = data.error || "Ошибка";
+    }
+}
+
+function logout() {
+    document.cookie = "admin_token=; Max-Age=0; Path=/";
+    location.reload();
+}
+
+document.getElementById("passwordInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") login();
+});
+
+// Check if already logged in (cookie present)
+if (document.cookie.includes("admin_token=")) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("adminApp").style.display    = "block";
+    initApp();
+}
+
+// ── Init ──────────────────────────────────────────────
+function initApp() {
+    updateMonthLabels();
+    loadPosts();
+    loadUsers();
+}
+
+// ── Tabs ──────────────────────────────────────────────
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tab-btn").forEach((b, i) => {
+        b.classList.toggle("active", ["posts","planning","users"][i] === tab);
+    });
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(`section-${tab}`).classList.add("active");
+
+    if (tab === "posts")     loadPosts();
+    if (tab === "planning")  loadPlanning();
+    if (tab === "users")     loadUsers();
+}
+
+// ── Month navigation ──────────────────────────────────
+function changeMonth(delta) {
+    viewDate.setMonth(viewDate.getMonth() + delta);
+    updateMonthLabels();
+    if (currentTab === "posts")    loadPosts();
+    if (currentTab === "planning") loadPlanning();
+}
+
+function getMonthPrefix() {
+    const y = viewDate.getFullYear();
+    const m = String(viewDate.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+}
+
+function updateMonthLabels() {
+    const label = new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(viewDate);
+    document.getElementById("monthLabel").textContent     = label;
+    const el = document.getElementById("monthLabelPlan");
+    if (el) el.textContent = label;
+}
+
+// ── API helpers ───────────────────────────────────────
+async function api(method, path, body) {
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    const res  = await fetch(path, opts);
+    if (res.status === 401) { logout(); return null; }
+    return res.json();
+}
+
+// ── Toast ─────────────────────────────────────────────
+function showToast(msg, type = "success") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className   = `show ${type}`;
+    setTimeout(() => { t.className = ""; }, 2500);
+}
+
+// ── Posts ─────────────────────────────────────────────
+async function loadPosts() {
+    const container = document.getElementById("postsContainer");
+    container.innerHTML = `<div class="empty"><span class="spinner"></span> Загрузка...</div>`;
+
+    const data = await api("GET", `/api/admin/posts?month=${getMonthPrefix()}`);
+    if (!data) return;
+
+    const posts = [];
+    Object.entries(data.posts || {}).forEach(([dateKey, dayPosts]) => {
+        Object.entries(dayPosts || {}).forEach(([postKey, post]) => {
+            posts.push({ dateKey, postKey, ...post });
+        });
+    });
+
+    posts.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+    if (posts.length === 0) {
+        container.innerHTML = `<div class="empty"><div class="empty-icon">🍽️</div><div class="empty-text">Постов за этот месяц нет</div></div>`;
+        return;
+    }
+
+    container.innerHTML = `<div class="posts-grid">${posts.map(p => _buildPostCard(p)).join("")}</div>`;
+}
+
+function _buildPostCard(p) {
+    const imgSrc = (p.img && p.img !== "undefined") ? p.img : "";
+    const status = p.status || "pending";
+
+    return `
+        <div class="post-card ${status}" id="card-${p.postKey}">
+            ${imgSrc ? `<img src="${imgSrc}" alt="">` : `<div style="height:180px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;">🍽️</div>`}
+            <div class="post-card-body">
+                <div class="post-meta">
+                    <span class="post-chef">${p.chef}</span>
+                    <span class="status-pill ${status}">${{ approved:"ОДОБРЕН", rejected:"ОТКЛОНЁН", pending:"ГОЛОСОВАНИЕ" }[status]}</span>
+                </div>
+                <div class="post-date">📅 ${p.dateKey} · ⏰ ${p.time || "—"} · 👤 ${p.author || "—"}</div>
+                <div class="post-actions">
+                    <button class="btn-sm approve" onclick="patchPost('${p.dateKey}','${p.postKey}','approved')">✅ Одобрить</button>
+                    <button class="btn-sm reject"  onclick="patchPost('${p.dateKey}','${p.postKey}','rejected')">🚫 Отклонить</button>
+                    <button class="btn-sm delete"  onclick="deletePost('${p.dateKey}','${p.postKey}')">🗑</button>
+                </div>
+            </div>
+        </div>`;
+}
+
+async function patchPost(dateKey, postKey, status) {
+    const data = await api("PATCH", "/api/admin/posts", { dateKey, postKey, status });
+    if (data?.ok) {
+        showToast(`Статус изменён: ${status}`);
+        loadPosts();
+    } else {
+        showToast("Ошибка", "error");
+    }
+}
+
+async function deletePost(dateKey, postKey) {
+    if (!confirm("Удалить пост?")) return;
+    const data = await api("DELETE", "/api/admin/posts", { dateKey, postKey });
+    if (data?.ok) {
+        showToast("Пост удалён");
+        loadPosts();
+    } else {
+        showToast("Ошибка", "error");
+    }
+}
+
+// ── Planning ──────────────────────────────────────────
+async function loadPlanning() {
+    document.getElementById("monthLabelPlan").textContent =
+        new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(viewDate);
+
+    const container = document.getElementById("planningContainer");
+    container.innerHTML = `<div class="empty"><span class="spinner"></span> Загрузка...</div>`;
+
+    const data = await api("GET", `/api/admin/planning?month=${getMonthPrefix()}`);
+    if (!data) return;
+
+    // Build all days in the viewed month
+    const year  = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days  = new Date(year, month + 1, 0).getDate();
+    const rows  = [];
+
+    for (let d = 1; d <= days; d++) {
+        const dateKey = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const plan    = data.planning[dateKey];
+        rows.push({ dateKey, chef: plan?.chef || "" });
+    }
+
+    const chefOptions = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
+
+    container.innerHTML = `
+        <table class="plan-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Повар</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => `
+                    <tr>
+                        <td>${r.dateKey}</td>
+                        <td>
+                            <select class="chef-select" id="plan-${r.dateKey}">
+                                <option value="">— Не назначен —</option>
+                                ${CHEFS.map(c => `<option value="${c}" ${r.chef === c ? "selected" : ""}>${c}</option>`).join("")}
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn-plan-save" onclick="savePlan('${r.dateKey}')">Сохранить</button>
+                            ${r.chef ? `<button class="btn-plan-del" onclick="deletePlan('${r.dateKey}')">✕</button>` : ""}
+                        </td>
+                    </tr>`).join("")}
+            </tbody>
+        </table>`;
+}
+
+async function savePlan(dateKey) {
+    const chef = document.getElementById(`plan-${dateKey}`).value;
+    if (!chef) { deletePlan(dateKey); return; }
+    const data = await api("POST", "/api/admin/planning", { dateKey, chef });
+    if (data?.ok) showToast(`План сохранён: ${chef}`);
+    else showToast("Ошибка", "error");
+    loadPlanning();
+}
+
+async function deletePlan(dateKey) {
+    const data = await api("DELETE", "/api/admin/planning", { dateKey });
+    if (data?.ok) showToast("План удалён");
+    else showToast("Ошибка", "error");
+    loadPlanning();
+}
+
+// ── Users ─────────────────────────────────────────────
+async function loadUsers() {
+    const container = document.getElementById("usersContainer");
+    container.innerHTML = `<div class="empty"><span class="spinner"></span> Загрузка...</div>`;
+
+    const data = await api("GET", "/api/admin/users");
+    if (!data) return;
+
+    const users = Object.entries(data.users || {});
+
+    if (users.length === 0) {
+        container.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Пользователей нет</div></div>`;
+        return;
+    }
+
+    const chefOptions = CHEFS.map(c => `<option value="${c}">${c}</option>`).join("");
+
+    container.innerHTML = `
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Фото</th>
+                    <th>Роль</th>
+                    <th>Telegram ID</th>
+                    <th>Chat ID</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${users.map(([uid, u]) => `
+                    <tr>
+                        <td><img class="user-avatar" src="${u.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=1e1e2e&color=f59e0b`}" alt=""></td>
+                        <td>
+                            <select class="chef-select" id="role-${uid}">
+                                ${CHEFS.map(c => `<option value="${c}" ${u.name===c?"selected":""}>${c}</option>`).join("")}
+                            </select>
+                        </td>
+                        <td><span class="user-id">${uid}</span></td>
+                        <td><span class="user-id">${u.chatId || "—"}</span></td>
+                        <td>
+                            <button class="btn-plan-save" onclick="saveUserRole('${uid}')">Сохранить</button>
+                            <button class="btn-plan-del"  onclick="deleteUser('${uid}')">🗑 Удалить</button>
+                        </td>
+                    </tr>`).join("")}
+            </tbody>
+        </table>`;
+}
+
+async function saveUserRole(userId) {
+    const name = document.getElementById(`role-${userId}`).value;
+    const data = await api("PATCH", "/api/admin/users", { userId, name });
+    if (data?.ok) showToast(`Роль изменена: ${name}`);
+    else showToast("Ошибка", "error");
+}
+
+async function deleteUser(userId) {
+    if (!confirm("Удалить пользователя? Он сможет зарегистрироваться заново.")) return;
+    const data = await api("DELETE", "/api/admin/users", { userId });
+    if (data?.ok) { showToast("Пользователь удалён"); loadUsers(); }
+    else showToast("Ошибка", "error");
+}
+</script>
+</body>
+</html>
