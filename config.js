@@ -21,19 +21,3 @@ const VOTE_THRESHOLD = 2;
 
 /** How many days ahead planning is allowed. */
 const PLAN_AHEAD_DAYS = 7;
-
-// ── Notification settings ─────────────────────────────
-// Все времена в UTC. Москва = UTC+3, поэтому вычитай 3 часа.
-// Пример: хочешь в 10:00 МСК → ставь 7
-
-/**
- * Час (UTC) для отправки напоминания проголосовать.
- * 7 UTC = 10:00 МСК
- */
-const REMINDER_HOUR_UTC = 7;
-
-/**
- * Час (UTC) для уведомления "ты готовишь сегодня".
- * 6 UTC = 9:00 МСК
- */
-const COOKING_REMINDER_HOUR_UTC = 6;
