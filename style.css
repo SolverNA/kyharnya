@@ -1,8 +1,8 @@
 /* ===================================================
- K UKHARNYA — Global Styl*es
+ K UKHARNYA — Global Styles    *
  =================================================== */
 
-/* ── CSS Variables — Light (default) ── */
+/* ── CSS Variables — Light ── */
 :root {
     --bg:         #f1f5f9;
     --card:       #ffffff;
@@ -13,50 +13,37 @@
     --text:       #0f172a;
     --gray:       #94a3b8;
 
-    /* Day cell */
-    --day-bg:     #ffffff;
+    --day-bg:          #ffffff;
     --day-today-bg:    #eef2ff;
     --day-hasdata-bg:  #dcfce7;
+    --day-fire-bg:     #fff7ed;
 
-    /* Header */
-    --header-bg:  #ffffff;
-    --header-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --day-text:        #0f172a;
+    --day-hasdata-text:#065f46;
+    --day-planned-text:#4f46e5;
 
-    /* Month nav */
-    --nav-bg:     #ffffff;
+    --header-bg:    #ffffff;
+    --header-shadow:0 1px 3px rgba(0,0,0,0.1);
+    --nav-bg:       #ffffff;
+    --nav-btn-color:#0f172a;
 
-    /* Day view */
-    --dayview-bg: #ffffff;
-
-    /* Post card */
-    --post-bg:    #f8fafc;
-    --post-border:#e2e8f0;
-
-    /* Leaderboard */
-    --lb-bg:      #f8fafc;
-
-    /* Vote */
-    --vote-bg:    #ffffff;
-
-    /* Modal */
-    --modal-bg:   #ffffff;
-
-    /* Select / input */
+    --dayview-bg:   #ffffff;
+    --post-bg:      #f8fafc;
+    --post-border:  #e2e8f0;
+    --lb-bg:        #f8fafc;
+    --vote-bg:      #ffffff;
+    --modal-bg:     #ffffff;
     --input-border: #ddd;
-    --input-bg:   #ffffff;
+    --input-bg:     #ffffff;
 
-    /* Month nav button */
-    --nav-btn-color: #0f172a;
+    --fire-bg:     #fffbeb;
+    --fire-border: #fcd34d;
 
-    /* Fire stats */
-    --fire-bg:    #fffbeb;
-    --fire-border:#fcd34d;
+    --close-btn-bg:    #e2e8f0;
+    --close-btn-color: #0f172a;
 
-    /* Plan name */
-    --plan-name-color: #4f46e5;
-
-    /* Weekday */
     --weekday-color: #64748b;
+    --muted-text:    #64748b;
 }
 
 /* ── CSS Variables — Dark ── */
@@ -74,34 +61,34 @@
         --day-bg:          #1a1a28;
         --day-today-bg:    #1e1b4b;
         --day-hasdata-bg:  #064e3b;
+        --day-fire-bg:     #1c1200;
 
-        --header-bg:  #13131c;
-        --header-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        --day-text:        #e2e8f0;
+        --day-hasdata-text:#6ee7b7;
+        --day-planned-text:#a5b4fc;
 
-        --nav-bg:     #13131c;
+        --header-bg:    #13131c;
+        --header-shadow:0 1px 3px rgba(0,0,0,0.5);
+        --nav-bg:       #13131c;
+        --nav-btn-color:#e2e8f0;
 
-        --dayview-bg: #13131c;
-
-        --post-bg:    #1a1a28;
-        --post-border:#2e2e45;
-
-        --lb-bg:      #1a1a28;
-
-        --vote-bg:    #13131c;
-
-        --modal-bg:   #1a1a28;
-
+        --dayview-bg:   #13131c;
+        --post-bg:      #1a1a28;
+        --post-border:  #2e2e45;
+        --lb-bg:        #1a1a28;
+        --vote-bg:      #13131c;
+        --modal-bg:     #1a1a28;
         --input-border: #2e2e45;
-        --input-bg:   #0d0d14;
+        --input-bg:     #0d0d14;
 
-        --nav-btn-color: #e2e8f0;
+        --fire-bg:     #1c1500;
+        --fire-border: #92400e;
 
-        --fire-bg:    #1c1500;
-        --fire-border:#92400e;
-
-        --plan-name-color: #818cf8;
+        --close-btn-bg:    #2e2e45;
+        --close-btn-color: #e2e8f0;
 
         --weekday-color: #94a3b8;
+        --muted-text:    #94a3b8;
     }
 }
 
@@ -120,7 +107,7 @@ body {
 
 
 /* ===================================================
- H EADER & AUTH          *
+ H EADER & AUTH                *
  =================================================== */
 
 .auth-header {
@@ -175,7 +162,7 @@ body {
 
 
 /* ===================================================
- C ALENDAR               *
+ C ALENDAR                     *
  =================================================== */
 
 .container {
@@ -195,6 +182,10 @@ body {
 }
 
 .month-nav button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
     color: var(--nav-btn-color);
 }
 
@@ -213,7 +204,7 @@ body {
 
 .day {
     background: var(--day-bg);
-    color: var(--text);
+    color: var(--day-text);
     aspect-ratio: 1 / 1;
     border-radius: 12px;
     display: flex;
@@ -229,31 +220,37 @@ body {
     overflow: hidden;
 }
 
-/* Day state modifiers */
 .day.today    { border-color: var(--primary); background: var(--day-today-bg); }
 .day.has-data { background: var(--day-hasdata-bg); border-color: var(--success); }
 .day.planned  { border-style: dashed; border-color: var(--gray); }
 .day.is-fire  {
-    background: #fff7ed;
+    background: var(--day-fire-bg);
     border-color: var(--warning);
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
-}
-@media (prefers-color-scheme: dark) {
-    .day.is-fire { background: #1c1200; }
+    box-shadow: 0 0 8px rgba(245,158,11,0.3);
 }
 
-.day-label { font-size: 14px; z-index: 2; }
+.day-label {
+    font-size: 14px;
+    z-index: 2;
+    color: var(--day-text);
+}
 
+/* Chef name on calendar cell — always readable */
 .plan-name {
     font-size: 9px;
     text-transform: uppercase;
-    color: var(--plan-name-color);
     font-weight: 800;
     text-align: center;
     margin-top: 2px;
-    line-height: 1;
+    line-height: 1.1;
     word-break: break-all;
+    padding: 1px 2px;
+    border-radius: 3px;
 }
+
+.day:not(.has-data) .plan-name { color: var(--day-planned-text); }
+.day.has-data        .plan-name { color: var(--day-hasdata-text); }
+.day.is-fire         .plan-name { color: var(--warning); }
 
 .fire-icon-day {
     font-size: 14px;
@@ -263,7 +260,7 @@ body {
 
 
 /* ===================================================
- D AY VIEW               *
+ D AY VIEW                     *
  =================================================== */
 
 #dayView {
@@ -275,15 +272,16 @@ border-radius: 24px;
 box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
 }
 
-#dayView h2 { color: var(--text); }
-
-#dayView button[onclick="document.getElementById('dayView').hidden=true"] {
-background: var(--post-bg);
-color: var(--text);
+/* Close button */
+#dayView .dayview-close-btn {
+background: var(--close-btn-bg);
+color: var(--close-btn-color);
 border: none;
 padding: 5px 10px;
 border-radius: 8px;
 cursor: pointer;
+font-size: 14px;
+line-height: 1;
 }
 
 .leaderboard-day {
@@ -295,11 +293,12 @@ cursor: pointer;
     padding: 10px;
     border-radius: 12px;
     font-size: 12px;
+    color: var(--text);
 }
 
 
 /* ===================================================
- A CTION BUTTONS         *
+ A CTION BUTTONS               *
  =================================================== */
 
 .btn-camera {
@@ -326,7 +325,6 @@ cursor: pointer;
     margin-top: 10px;
 }
 
-/* Chef select & plan form */
 #chefSelect, #planChefSelect {
 background: var(--input-bg);
 color: var(--text);
@@ -341,7 +339,6 @@ border-radius: 10px;
 font-weight: 600;
 }
 
-/* Plan form save button */
 #planForm button {
 background: var(--primary);
 color: white;
@@ -352,7 +349,7 @@ font-weight: 600;
 
 
 /* ===================================================
- P OST CARD              *
+ P OST CARD                    *
  =================================================== */
 
 .post-item {
@@ -360,7 +357,7 @@ font-weight: 600;
     border-radius: 16px;
     overflow: hidden;
     border: 2px solid var(--post-border);
-    background: var(--post-bg);
+    background: transparent;
     color: var(--text);
     position: relative;
     transition: all 0.3s ease;
@@ -368,13 +365,13 @@ font-weight: 600;
 
 .post-item img { width: 100%; display: block; }
 
-/* Post status variants */
 .post-green-seq { border-color: var(--success); box-shadow: 0 0 10px rgba(16,185,129,0.2); }
 .post-pending   { border-color: var(--post-border); }
 
-.post-rejected  { border-color: var(--danger); background: #fef2f2; height: 60px; overflow: hidden; }
-@media (prefers-color-scheme: dark) {
-    .post-rejected { background: #1f0a0a; }
+.post-rejected  {
+    border-color: var(--danger);
+    height: 60px;
+    overflow: hidden;
 }
 .post-rejected.expanded { height: auto; }
 .post-rejected .post-header {
@@ -383,11 +380,16 @@ font-weight: 600;
     padding: 10px;
     align-items: center;
     cursor: pointer;
+    color: var(--danger);
 }
 
-.post-item .post-body div[style*="padding:12px"] {
-    color: var(--text);
+/* Post body text always readable */
+.post-body {
+    background: var(--post-bg);
 }
+
+.post-body b   { color: var(--text); }
+.post-body span { color: var(--muted-text); }
 
 .status-badge {
     position: absolute;
@@ -398,13 +400,13 @@ font-weight: 600;
     font-size: 10px;
     font-weight: bold;
     text-transform: uppercase;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.65);
     color: white;
 }
 
 
 /* ===================================================
- V OTING                 *
+ V OTING                       *
  =================================================== */
 
 .vote-actions {
@@ -426,24 +428,24 @@ font-weight: 600;
     align-items: center;
     font-size: 12px;
     transition: 0.2s;
-    background: var(--vote-bg);
+    background: transparent;
     color: var(--text);
 }
 
 .vote-btn:hover  { opacity: 0.85; transform: scale(1.02); }
 .vote-btn:active { transform: scale(0.98); }
 
-.vote-btn.approve { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
-.vote-btn.reject  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+.vote-btn.approve { color: var(--success); border-color: #bbf7d0; }
+.vote-btn.reject  { color: var(--danger);  border-color: #fecaca; }
+
 @media (prefers-color-scheme: dark) {
-    .vote-btn.approve { background: #052e16; border-color: #166534; }
-    .vote-btn.reject  { background: #1f0a0a; border-color: #7f1d1d; }
+    .vote-btn.approve { border-color: #166534; }
+    .vote-btn.reject  { border-color: #7f1d1d; }
 }
 
 .voter-avatars { display: flex; margin-top: 4px; justify-content: center; }
 .voter-avatars img {
-    width: 20px;
-    height: 20px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     margin: 0 2px;
     border: 1px solid white;
@@ -451,7 +453,7 @@ font-weight: 600;
 
 
 /* ===================================================
- C AMERA OVERLAY         *
+ C AMERA OVERLAY               *
  =================================================== */
 
 #cameraOverlay {
@@ -467,8 +469,7 @@ z-index: 999;
 video { width: 100%; height: 75%; object-fit: cover; }
 
 .shutter {
-    width: 72px;
-    height: 72px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     background: white;
     border: 6px solid #333;
@@ -477,7 +478,7 @@ video { width: 100%; height: 75%; object-fit: cover; }
 
 
 /* ===================================================
- M ODALS                 *
+ M ODALS                       *
  =================================================== */
 
 #statsModal,
@@ -520,9 +521,15 @@ z-index: 1000;
 
 
 /* ===================================================
- S TATS TABLE            *
+ S TATS TABLE                  *
  =================================================== */
 
 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--post-border); font-size: 13px; color: var(--text); }
-th { color: var(--gray); }
+th, td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid var(--post-border);
+    font-size: 13px;
+    color: var(--text);
+}
+th { color: var(--muted-text); }
