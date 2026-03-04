@@ -3,7 +3,12 @@
 // ===================================================
 
 // Inline SVG placeholder — не зависит ни от каких файлов на сервере
-const PLACEHOLDER_IMG = "img/placeholder.png"
+const PLACEHOLDER_IMG = "data:image/svg+xml," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+<rect width="400" height="300" fill="#f1f5f9"/>
+<text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" font-size="56">🍽️</text>
+<text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="sans-serif">Фото не добавлено</text>
+</svg>`);
 
 /**
  * Возвращает валидный src для img — если поле пустое/undefined/битое, возвращает placeholder.
@@ -27,11 +32,11 @@ function updateHistory() {
 
     // Convert to array, newest first
     const posts = Object.entries(postsObj)
-        .map(([key, val]) => ({ ...val, key }))
-        .reverse();
+    .map(([key, val]) => ({ ...val, key }))
+    .reverse();
 
     document.getElementById("postHistory").innerHTML =
-        posts.map(post => _buildPostHTML(post)).join("");
+    posts.map(post => _buildPostHTML(post)).join("");
 }
 
 /**
@@ -98,34 +103,34 @@ function _buildPostHTML(post) {
     const imgSrc      = _getSafeSrc(post.img);
 
     return `
-        <div class="post-item ${_postClass(status)}" id="post-${post.key}">
+    <div class="post-item ${_postClass(status)}" id="post-${post.key}">
 
-            ${status === "rejected" ? `
-                <div class="post-header" onclick="togglePost('${post.key}')">
-                    <span>🚫 Отклонено (${post.chef})</span>
-                    <span>▼</span>
-                </div>` : ""}
+    ${status === "rejected" ? `
+        <div class="post-header" onclick="togglePost('${post.key}')">
+        <span>🚫 Отклонено (${post.chef})</span>
+        <span>▼</span>
+        </div>` : ""}
 
-            <div class="post-body" style="${isCollapsed ? "display:none" : ""}">
-                <div style="position:relative;">
-                    <img src="${imgSrc}"
-                         alt=""
-                         onerror="this.src='${PLACEHOLDER_IMG}'"
-                         style="width:100%; display:block;">
-                    <div class="status-badge" style="background:${statusMeta.color}">
-                        ${statusMeta.label}
-                    </div>
-                </div>
+        <div class="post-body" style="${isCollapsed ? "display:none" : ""}">
+        <div style="position:relative;">
+        <img src="${imgSrc}"
+        alt=""
+        onerror="this.src='${PLACEHOLDER_IMG}'"
+        style="width:100%; display:block;">
+        <div class="status-badge" style="background:${statusMeta.color}">
+        ${statusMeta.label}
+        </div>
+        </div>
 
-                <div style="padding:12px; font-size:14px;">
-                    <b>${post.chef}</b> готовил(а)<br>
-                    <span style="font-size:11px; color:#64748b;">👤 ${post.author} • ⏰ ${post.time}</span>
-                </div>
+        <div style="padding:12px; font-size:14px;">
+        <b>${post.chef}</b> готовил(а)<br>
+        <span style="font-size:11px; color:#64748b;">👤 ${post.author} • ⏰ ${post.time}</span>
+        </div>
 
-                ${(status === "pending" && currentUser && !isAuthor) ? _buildVoteActions(post.key, ups, downs, votes) : ""}
+        ${(status === "pending" && currentUser && !isAuthor) ? _buildVoteActions(post.key, ups, downs, votes) : ""}
 
-                ${(status !== "pending" || isAuthor) ? _buildVoteSummary(ups, downs, status, isAuthor) : ""}
-            </div>
+        ${(status !== "pending" || isAuthor) ? _buildVoteSummary(ups, downs, status, isAuthor) : ""}
+        </div>
         </div>`;
 }
 
@@ -160,16 +165,16 @@ function _buildVoteActions(postKey, ups, downs, votes) {
     const dislikeAvatars = _buildAvatarStack(votes, "dislike");
 
     return `
-        <div class="vote-actions">
-            <div class="vote-btn approve" onclick="vote('${selectedKey}', '${postKey}', 'like')">
-                👍 Одобрить (${ups})
-                <div class="voter-avatars">${likeAvatars}</div>
-            </div>
-            <div class="vote-btn reject" onclick="vote('${selectedKey}', '${postKey}', 'dislike')">
-                👎 Отказать (${downs})
-                <div class="voter-avatars">${dislikeAvatars}</div>
-            </div>
-        </div>`;
+    <div class="vote-actions">
+    <div class="vote-btn approve" onclick="vote('${selectedKey}', '${postKey}', 'like')">
+    👍 Одобрить (${ups})
+    <div class="voter-avatars">${likeAvatars}</div>
+    </div>
+    <div class="vote-btn reject" onclick="vote('${selectedKey}', '${postKey}', 'dislike')">
+    👎 Отказать (${downs})
+    <div class="voter-avatars">${dislikeAvatars}</div>
+    </div>
+    </div>`;
 }
 
 /**
@@ -180,25 +185,39 @@ function _buildVoteSummary(ups, downs, status, isAuthor) {
     const downColor = status === "rejected" ? "var(--danger)"  : "#64748b";
 
     const authorNote = (isAuthor && status === "pending")
-        ? `<div style="text-align:center; font-size:10px; color:#94a3b8; padding-bottom:10px;">
-               Вы не можете голосовать за свой пост
-           </div>`
-        : "";
+    ? `<div style="text-align:center; font-size:10px; color:#94a3b8; padding-bottom:10px;">
+    Вы не можете голосовать за свой пост
+    </div>`
+    : "";
 
     return `
-        <div style="padding:0 12px 12px; display:flex; gap:10px;">
-            <div style="flex:1; text-align:center; font-size:12px; color:${upColor};">👍 ${ups}</div>
-            <div style="flex:1; text-align:center; font-size:12px; color:${downColor};">👎 ${downs}</div>
-        </div>
-        ${authorNote}`;
+    <div style="padding:0 12px 12px; display:flex; gap:10px;">
+    <div style="flex:1; text-align:center; font-size:12px; color:${upColor};">👍 ${ups}</div>
+    <div style="flex:1; text-align:center; font-size:12px; color:${downColor};">👎 ${downs}</div>
+    </div>
+    ${authorNote}`;
 }
 
 /**
- * Builds a row of voter avatar <img> tags filtered by vote type.
+ * Builds a row of voter avatars filtered by vote type.
+ * If photo is missing — shows a colored circle with the first letter of the name.
  */
 function _buildAvatarStack(votes, type) {
     return Object.values(votes)
-        .filter(v => v.val === type)
-        .map(v => `<img src="${v.photo}" alt="${v.name}">`)
-        .join("");
+    .filter(v => v.val === type)
+    .map(v => {
+        if (v.photo && v.photo !== "") {
+            return `<img src="${v.photo}" alt="${v.name}" title="${v.name}">`;
+        }
+        // Fallback: colored circle with initial
+        const initial = (v.name || "?")[0].toUpperCase();
+        return `<div title="${v.name}" style="
+        width:20px; height:20px; border-radius:50%;
+        background:#4f46e5; color:white;
+        font-size:10px; font-weight:bold;
+        display:inline-flex; align-items:center; justify-content:center;
+        margin:0 2px; border:1px solid white;
+        ">${initial}</div>`;
+    })
+    .join("");
 }

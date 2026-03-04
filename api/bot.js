@@ -101,10 +101,34 @@ async function handleRoleSelection(chatId, userId, chosenRole) {
         return;
     }
 
+    // Получаем фото профиля через Telegram API
+    let photoURL = "";
+    try {
+        const photosRes  = await fetch(
+            `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`
+        );
+        const photosData = await photosRes.json();
+        const fileId     = photosData.result?.photos?.[0]?.[0]?.file_id;
+
+        if (fileId) {
+            const fileRes  = await fetch(
+                `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${fileId}`
+            );
+            const fileData = await fileRes.json();
+            const filePath = fileData.result?.file_path;
+            if (filePath) {
+                photoURL = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
+            }
+        }
+    } catch (e) {
+        // Фото недоступно — не критично
+    }
+
     await db.ref(`users_mapping/${userId}`).set({
         name:       chosenRole,
         telegramId: userId,
         chatId:     String(chatId),
+                                                photo:      photoURL,
     });
 
     await db.ref(`waiting_registration/${userId}`).remove();
@@ -138,7 +162,13 @@ async function handleCallbackQuery(query) {
         if (post.authorId === userId) return post;
 
         if (!post.votes) post.votes = {};
-        post.votes[userId] = { val: voteType, name: userRecord.name, photo: "" };
+
+        // Используем сохранённое фото из users_mapping
+        post.votes[userId] = {
+            val:   voteType,
+            name:  userRecord.name,
+            photo: userRecord.photo || "",
+        };
 
         const votes    = Object.values(post.votes);
         const likes    = votes.filter(v => v.val === "like").length;
@@ -171,9 +201,6 @@ async function handleCallbackQuery(query) {
     }
 }
 
-/**
- * Updates all TG messages when voting is complete — sets final caption and removes buttons.
- */
 async function _finalizePostMessages(dateKey, postKey, post, likes, dislikes) {
     const tgMsgSnap = await db.ref(`tg_messages/${dateKey}/${postKey}`).once("value");
     const tgMsgs    = tgMsgSnap.val();
@@ -190,9 +217,6 @@ async function _finalizePostMessages(dateKey, postKey, post, likes, dislikes) {
     }
 }
 
-/**
- * Updates only the vote count on buttons without touching the caption.
- */
 async function _refreshVoteButtons(dateKey, postKey, likes, dislikes) {
     const tgMsgSnap = await db.ref(`tg_messages/${dateKey}/${postKey}`).once("value");
     const tgMsgs    = tgMsgSnap.val();
