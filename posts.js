@@ -2,7 +2,7 @@
 //  posts.js — Post history rendering & voting logic
 // ===================================================
 
-const PLACEHOLDER_IMG = "placeholder.jpg";
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' font-size='48'%3E🍽️%3C/text%3E%3Ctext x='50%25' y='65%25' dominant-baseline='middle' text-anchor='middle' font-size='16' fill='%2394a3b8' font-family='sans-serif'%3EФото не добавлено%3C/text%3E%3C/svg%3E";
 
 /**
  * Re-renders the post list for `selectedKey`.
@@ -82,8 +82,8 @@ function _buildPostHTML(post) {
         <div class="post-body" style="${isCollapsed ? "display:none" : ""}">
         <div style="position:relative;">
         <img src="${imgSrc}"
-        alt="Фото блюда"
-        onerror="this.onerror=null; this.src='${PLACEHOLDER_IMG}'">
+             alt="Фото блюда"
+             onerror="this.onerror=null; this.src='${PLACEHOLDER_IMG}'">
         <div class="status-badge" style="background:${statusMeta.color}">
         ${statusMeta.label}
         </div>
