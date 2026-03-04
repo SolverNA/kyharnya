@@ -3,12 +3,13 @@
 // ===================================================
 
 // Inline SVG placeholder — не зависит ни от каких файлов на сервере
-const PLACEHOLDER_IMG = "data:image/svg+xml," + encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-<rect width="400" height="300" fill="#f1f5f9"/>
-<text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" font-size="56">🍽️</text>
-<text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="sans-serif">Фото не добавлено</text>
-</svg>`);
+// const PLACEHOLDER_IMG = "data:image/svg+xml," + encodeURIComponent(`
+// <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+// <rect width="400" height="300" fill="#f1f5f9"/>
+// <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" font-size="56">🍽️</text>
+// <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="sans-serif">Фото не добавлено</text>
+// </svg>`);
+const PLACEHOLDER_IMG = "/img/placeholder.png"
 
 /**
  * Возвращает валидный src для img — если поле пустое/undefined/битое, возвращает placeholder.
