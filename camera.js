@@ -32,7 +32,6 @@ function capturePhoto() {
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
-    // Compress to JPEG — 0.5 quality is enough for a food photo
     tempImage = canvas.toDataURL("image/jpeg", 0.5);
 
     closeCamera();
@@ -51,10 +50,8 @@ function closeCamera() {
 }
 
 /**
- * Sends the photo + metadata to /api/upload which:
- *  1. Uploads photo to Cloudinary
- *  2. Saves post to Firebase
- *  3. Sends Telegram notifications
+ * Sends the photo + metadata to /api/upload.
+ * Passes Telegram initData for server-side identity verification.
  */
 async function finalizePost() {
     if (!currentUser) return alert("Войдите в аккаунт!");
@@ -64,9 +61,12 @@ async function finalizePost() {
     btn.disabled  = true;
     btn.innerText = "Загрузка...";
 
-    const chef   = document.getElementById("chefSelect").value;
-    const now    = new Date();
-    const time   = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const chef     = document.getElementById("chefSelect").value;
+    const now      = new Date();
+    const time     = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Telegram initData for server-side verification
+    const initData = window.Telegram?.WebApp?.initData || "";
 
     try {
         const res = await fetch("/api/upload", {
@@ -79,6 +79,7 @@ async function finalizePost() {
                 authorId: currentUser.uid,
                 dateKey:  selectedKey,
                 time,
+                initData,
             }),
         });
 

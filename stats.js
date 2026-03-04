@@ -1,10 +1,16 @@
 // ===================================================
 //  stats.js — Streak calculation & leaderboard logic
+//
+//  Note: calculateStats() now only sees data for the
+//  currently loaded month (globalData + planData).
+//  The streak counter in the header always shows the
+//  streak for the viewed month — this is intentional
+//  and consistent with the per-month data loading.
 // ===================================================
 
 /**
- * Walks all dates chronologically, computes fire-days map,
- * current streak count, and aggregated stats.
+ * Walks all dates in globalData + planData chronologically,
+ * computes fire-days map, current streak, and aggregated stats.
  * Writes results into `window.appStats` and `fireDaysMap`.
  */
 function calculateStats() {
@@ -67,7 +73,6 @@ function calculateStats() {
         }
     });
 
-    // Guard: element may not exist if Telegram screen replaced body
     const el = document.getElementById("fireStats");
     if (el) el.innerText = `🔥 ${currentStreak}`;
 
@@ -80,7 +85,6 @@ function calculateStats() {
  */
 function getLeaderboard() {
     if (!window.appStats) return [];
-
     return Object.entries(window.appStats.chefCounts)
     .map(([chef, count]) => ({ chef, count }))
     .sort((a, b) => b.count - a.count);
@@ -88,7 +92,6 @@ function getLeaderboard() {
 
 /**
  * Opens and populates the statistics modal.
- * Only available to logged-in users.
  */
 function openStats() {
     if (!currentUser) return;

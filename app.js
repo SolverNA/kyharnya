@@ -1,5 +1,5 @@
 // ===================================================
-//  app.js — Global state & Firebase real-time listener
+//  app.js — Global state & Firebase real-time listeners
 // ===================================================
 
 /** @type {{ uid: string, displayName: string, photoURL: string }|null} */
@@ -17,45 +17,94 @@ let selectedKey  = "";
 /** Base64 JPEG captured from camera, waiting to be posted */
 let tempImage    = null;
 
-/** All cook posts keyed by date then post ID: { [dateKey]: { [postId]: PostObject } } */
+/** Cook posts for the currently viewed month: { [dateKey]: { [postId]: PostObject } } */
 let globalData   = {};
 
-/** Planning entries keyed by date: { [dateKey]: { chef: string } } */
+/** Planning entries for the currently viewed month: { [dateKey]: { chef: string } } */
 let planData     = {};
 
-/** Google-UID → { name, chatId } mapping stored in Firebase */
+/** Google-UID → { name, chatId, photo } mapping — loaded once */
 let usersMapping = {};
 
 /** Date keys that have a 🔥 — populated by calculateStats() */
 let fireDaysMap  = {};
 
-// ── Firebase real-time listener ──────────────────────
+/** Active Firebase listeners — unsubscribed on month change */
+let _unsubPosts    = null;
+let _unsubPlanning = null;
 
-db.ref("/").on("value", snapshot => {
-    const val    = snapshot.val() || {};
+// ── Helpers ───────────────────────────────────────────
 
-    console.log("=== Firebase snapshot received ===");
-    console.log("cook_posts keys:", Object.keys(val.cook_posts || {}));
-    console.log("planning keys:", Object.keys(val.planning || {}));
-    console.log("users_mapping keys:", Object.keys(val.users_mapping || {}));
-    console.log("Full val:", JSON.stringify(val).slice(0, 500));
+/**
+ * Returns "YYYY-MM" for the currently viewed month.
+ * @returns {string}
+ */
+function getViewMonthPrefix() {
+    const y = viewDate.getFullYear();
+    const m = String(viewDate.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+}
 
-    globalData   = val.cook_posts    || {};
-    planData     = val.planning      || {};
-    usersMapping = val.users_mapping || {};
+// ── Firebase listeners ────────────────────────────────
 
-    if (currentUser && usersMapping[currentUser.uid]) {
-        currentRole = usersMapping[currentUser.uid].name;
+/**
+ * Loads users_mapping once — it changes rarely and is small.
+ */
+function _loadUsersMapping() {
+    db.ref("users_mapping").on("value", snap => {
+        usersMapping = snap.val() || {};
+        if (currentUser && usersMapping[currentUser.uid]) {
+            currentRole = usersMapping[currentUser.uid].name;
+        }
+    });
+}
+
+/**
+ * Subscribes to cook_posts and planning for the given month prefix.
+ * Unsubscribes previous listeners first.
+ *
+ * @param {string} prefix  e.g. "2026-03"
+ */
+function subscribeToMonth(prefix) {
+    // Tear down previous listeners
+    if (_unsubPosts) {
+        db.ref(`cook_posts`).orderByKey()
+        .startAt(prefix).endAt(prefix + "\uffff").off("value");
+        _unsubPosts = null;
+    }
+    if (_unsubPlanning) {
+        db.ref(`planning`).orderByKey()
+        .startAt(prefix).endAt(prefix + "\uffff").off("value");
+        _unsubPlanning = null;
     }
 
-    render();
+    // Reset data for new month
+    globalData = {};
+    planData   = {};
 
-    if (!document.getElementById("dayView").hidden) {
-        updateHistory();
-    }
-}, error => {
-    console.error("=== Firebase read ERROR ===", error.code, error.message);
-});
+    // Posts for this month
+    const postsQuery = db.ref("cook_posts").orderByKey()
+    .startAt(prefix).endAt(prefix + "\uffff");
+
+    _unsubPosts = postsQuery.on("value", snap => {
+        globalData = snap.val() || {};
+        render();
+        if (!document.getElementById("dayView").hidden) {
+            updateHistory();
+        }
+    }, err => console.error("cook_posts listener error:", err.code));
+
+    // Planning for this month
+    const planQuery = db.ref("planning").orderByKey()
+    .startAt(prefix).endAt(prefix + "\uffff");
+
+    _unsubPlanning = planQuery.on("value", snap => {
+        planData = snap.val() || {};
+        render();
+    }, err => console.error("planning listener error:", err.code));
+}
 
 // ── Bootstrap ─────────────────────────────────────────
+_loadUsersMapping();
+subscribeToMonth(getViewMonthPrefix());
 initAuthListener();
