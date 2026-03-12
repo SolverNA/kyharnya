@@ -1,6 +1,7 @@
 // ===================================================
-//  config.js — App constants
-//  Firebase keys are injected via window.ENV (api/env.js)
+//  config.js — Фронтенд-константы
+//  Все значения приходят через /api/env → window.ENV
+//  Ничего не захардкожено — всё управляется через Vercel env vars
 // ===================================================
 
 const FIREBASE_CONFIG = {
@@ -13,11 +14,11 @@ const FIREBASE_CONFIG = {
     appId:             window.ENV.FIREBASE_APP_ID,
 };
 
-/** List of all possible chef names (roles). */
-const CHEFS = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
+/** Список поваров — берётся из env, формат "ИМЯ1,ИМЯ2,ИМЯ3" */
+const CHEFS = window.ENV.CHEFS.split(",").map(s => s.trim());
 
-/** How many votes in one direction trigger a decision. */
-const VOTE_THRESHOLD = 2;
+/** Сколько голосов нужно для решения */
+const VOTE_THRESHOLD = Number(window.ENV.VOTE_THRESHOLD);
 
-/** How many days ahead planning is allowed. */
-const PLAN_AHEAD_DAYS = 7;
+/** На сколько дней вперёд разрешено планирование */
+const PLAN_AHEAD_DAYS = Number(window.ENV.PLAN_AHEAD_DAYS);

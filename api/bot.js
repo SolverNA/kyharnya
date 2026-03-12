@@ -3,6 +3,7 @@
 // ===================================================
 
 const { db }                  = require("../lib/firebase");
+const { CHEFS, VOTE_THRESHOLD } = require("../lib/config");
 const {
     sendMessage,
     answerCallbackQuery,
@@ -11,9 +12,6 @@ const {
     buildVoteKeyboard,
 } = require("../lib/telegram");
 const { MSG } = require("../messages");
-
-const CHEFS          = ["ГИЗАР", "ВИОЛЕТТА", "КАМИЛЬ"];
-const VOTE_THRESHOLD = 2;
 
 export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).end();
@@ -85,8 +83,8 @@ async function handleStart(chatId, userId) {
     await sendMessage(chatId, MSG.welcome(), {
         reply_markup: {
             keyboard:          freeRoles.map(role => [{ text: role }]),
-                      resize_keyboard:   true,
-                      one_time_keyboard: true,
+            resize_keyboard:   true,
+            one_time_keyboard: true,
         },
     });
 }
@@ -101,7 +99,6 @@ async function handleRoleSelection(chatId, userId, chosenRole) {
         return;
     }
 
-    // Получаем фото профиля через Telegram API
     let photoURL = "";
     try {
         const photosRes  = await fetch(
@@ -128,7 +125,7 @@ async function handleRoleSelection(chatId, userId, chosenRole) {
         name:       chosenRole,
         telegramId: userId,
         chatId:     String(chatId),
-                                                photo:      photoURL,
+        photo:      photoURL,
     });
 
     await db.ref(`waiting_registration/${userId}`).remove();
@@ -163,7 +160,6 @@ async function handleCallbackQuery(query) {
 
         if (!post.votes) post.votes = {};
 
-        // Используем сохранённое фото из users_mapping
         post.votes[userId] = {
             val:   voteType,
             name:  userRecord.name,
@@ -207,8 +203,8 @@ async function _finalizePostMessages(dateKey, postKey, post, likes, dislikes) {
     if (!tgMsgs) return;
 
     const caption = post.status === "approved"
-    ? MSG.approved(post.chef, post.time, likes, dislikes)
-    : MSG.rejected(post.chef, post.time, likes, dislikes);
+        ? MSG.approved(post.chef, post.time, likes, dislikes)
+        : MSG.rejected(post.chef, post.time, likes, dislikes);
 
     for (const [chatId, messageId] of Object.entries(tgMsgs)) {
         await editMessageCaption(chatId, messageId, caption, {
